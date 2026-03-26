@@ -15,7 +15,7 @@ export default function ContactPage() {
     // For now, open the user's email client with pre-filled content
     const subject = encodeURIComponent(`MedFolio Contact: ${name}`);
     const body = encodeURIComponent(`From: ${name} (${email})\n\n${message}`);
-    window.open(`mailto:hello@medfolio.uk?subject=${subject}&body=${body}`, '_self');
+    window.open(`mailto:admin@medfolio.uk?subject=${subject}&body=${body}`, '_self');
     setSubmitted(true);
   };
 
@@ -48,7 +48,7 @@ export default function ContactPage() {
             <p className="text-surface-500 text-sm mb-6">
               Your email client should have opened with a pre-filled message.
               If it didn&apos;t, you can email us directly at{' '}
-              <strong>hello@medfolio.uk</strong>
+              <strong>admin@medfolio.uk</strong>
             </p>
             <Link href="/" className="btn-primary">
               Back to home
@@ -103,7 +103,7 @@ export default function ContactPage() {
             </button>
 
             <p className="text-xs text-surface-400 text-center">
-              Or email us directly at <strong>hello@medfolio.uk</strong>
+              Or email us directly at <strong>admin@medfolio.uk</strong>
             </p>
           </form>
         )}
