@@ -18,13 +18,16 @@ import {
   RefreshCw,
 } from 'lucide-react';
 
+type YearProgress = Record<string, { completed: number; total: number }>;
+type SpecialtyProgress = Record<string, YearProgress>;
+
 export default function DashboardPage() {
   const { profile } = useAuth();
   const supabase = createClient();
   const [stats, setStats] = useState({
     totalCases: 0,
     casesThisMonth: 0,
-    portfolioProgress: {} as Record<string, { completed: number; total: number }>,
+    portfolioProgress: {} as SpecialtyProgress,
   });
   const [recentCases, setRecentCases] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,8 +51,7 @@ export default function DashboardPage() {
       startOfMonth.setDate(1);
       startOfMonth.setHours(0, 0, 0, 0);
 
-      // Fetch cases count, cases this month, recent cases, and all portfolio items in parallel
-      const [totalRes, monthRes, recentRes, portfolioRes] = await Promise.all([
+      const [totalRes, monthRes, recentRes, portfolioRes, templatesRes] = await Promise.all([
         supabase
           .from('cases')
           .select('*', { count: 'exact', head: true })
@@ -65,23 +67,40 @@ export default function DashboardPage() {
           .eq('user_id', userId)
           .order('created_at', { ascending: false })
           .limit(5),
-        // Single query for ALL specialties instead of N+1
         supabase
           .from('portfolio_items')
-          .select('specialty, status')
+          .select('specialty, status, template_id')
           .eq('user_id', userId),
+        supabase
+          .from('checklist_templates')
+          .select('id, specialty, training_year'),
       ]);
 
-      // Build portfolio progress from single query result
-      const progress: Record<string, { completed: number; total: number }> = {};
+      // Build a lookup: template_id -> training_year
+      const templateYearMap: Record<string, string> = {};
+      for (const t of templatesRes.data || []) {
+        templateYearMap[t.id] = t.training_year;
+      }
+
+      // Build progress: spec.id -> training_year -> { completed, total }
+      const progress: SpecialtyProgress = {};
       const allPortfolioItems = portfolioRes.data || [];
+
       for (const spec of SPECIALTIES) {
         const specItems = allPortfolioItems.filter((i) => i.specialty === spec.name);
-        if (specItems.length > 0) {
-          progress[spec.id] = {
-            completed: specItems.filter((i) => i.status === 'completed').length,
-            total: specItems.length,
-          };
+        if (specItems.length === 0) continue;
+
+        const yearMap: YearProgress = {};
+        for (const item of specItems) {
+          const year = templateYearMap[item.template_id];
+          if (!year) continue;
+          if (!yearMap[year]) yearMap[year] = { completed: 0, total: 0 };
+          yearMap[year].total++;
+          if (item.status === 'completed') yearMap[year].completed++;
+        }
+
+        if (Object.keys(yearMap).length > 0) {
+          progress[spec.id] = yearMap;
         }
       }
 
@@ -129,6 +148,8 @@ export default function DashboardPage() {
     );
   }
 
+  const activeSpecialties = SPECIALTIES.filter((spec) => stats.portfolioProgress[spec.id]);
+
   return (
     <div className="page-enter space-y-8">
       {/* Header */}
@@ -170,7 +191,7 @@ export default function DashboardPage() {
             </div>
           </div>
           <p className="font-display text-2xl font-bold text-surface-900">
-            {Object.keys(stats.portfolioProgress).length}
+            {activeSpecialties.length}
           </p>
           <p className="text-sm text-surface-500">Active specialties</p>
         </div>
@@ -204,32 +225,48 @@ export default function DashboardPage() {
                 Set up your portfolio
               </Link>
             </div>
+          ) : activeSpecialties.length === 0 ? (
+            <div className="text-center py-12">
+              <Stethoscope className="w-10 h-10 text-surface-300 mx-auto mb-3" />
+              <p className="text-surface-500 mb-4">No portfolio data yet</p>
+              <Link href="/portfolio/foundation" className="btn-primary text-sm">
+                Start tracking
+              </Link>
+            </div>
           ) : (
-            <div className="flex flex-wrap gap-8 justify-center sm:justify-start">
-              {SPECIALTIES.map((spec) => {
-                const progress = stats.portfolioProgress[spec.id];
-                const percentage = progress
-                  ? Math.round((progress.completed / progress.total) * 100)
-                  : 0;
+            <div className="space-y-6">
+              {activeSpecialties.map((spec) => {
+                const yearProgress = stats.portfolioProgress[spec.id];
+                // Sort years in the order they appear in spec.years
+                const sortedYears = spec.years.filter((y) => yearProgress[y]);
 
                 return (
-                  <Link
-                    key={spec.id}
-                    href={`/portfolio/${spec.id}`}
-                    className="group flex flex-col items-center gap-2"
-                  >
-                    <ProgressRing
-                      value={percentage}
-                      size={100}
-                      strokeWidth={7}
-                      label={spec.name}
-                      sublabel={
-                        progress
-                          ? `${progress.completed}/${progress.total}`
-                          : 'Not started'
-                      }
-                    />
-                  </Link>
+                  <div key={spec.id}>
+                    <p className="text-xs font-semibold text-surface-400 uppercase tracking-wide mb-3">
+                      {spec.name}
+                    </p>
+                    <div className="flex flex-wrap gap-5">
+                      {sortedYears.map((year) => {
+                        const p = yearProgress[year];
+                        const percentage = Math.round((p.completed / p.total) * 100);
+                        return (
+                          <Link
+                            key={year}
+                            href={`/portfolio/${spec.id}`}
+                            className="group flex flex-col items-center gap-1.5"
+                          >
+                            <ProgressRing
+                              value={percentage}
+                              size={84}
+                              strokeWidth={6}
+                              label={year}
+                              sublabel={`${p.completed}/${p.total}`}
+                            />
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </div>
                 );
               })}
             </div>
