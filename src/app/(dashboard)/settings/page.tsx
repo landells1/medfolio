@@ -143,25 +143,47 @@ export default function SettingsPage() {
     setExporting(false);
   };
 
-  const handleDeleteAccount = async () => {
+const handleDeleteAccount = async () => {
     if (deleteConfirm !== 'DELETE') return;
     setDeleting(true);
 
     const { data: { session } } = await supabase.auth.getSession();
-    if (session?.user) {
-      const userId = session.user.id;
-      // Delete all user data. Note: the auth.users record cannot be deleted
-      // from the client side — it requires the service_role key or a
-      // Supabase Edge Function. The profile cascade handles most data.
-      await supabase.from('cases').delete().eq('user_id', userId);
-      await supabase.from('portfolio_items').delete().eq('user_id', userId);
-      await supabase.from('uploads').delete().eq('user_id', userId);
-      await supabase.from('reminders').delete().eq('user_id', userId);
-      await supabase.from('profiles').delete().eq('id', userId);
+    if (!session?.user) { setDeleting(false); return; }
+
+    const userId = session.user.id;
+
+    // Delete storage files first
+    const { data: uploads } = await supabase
+      .from('uploads')
+      .select('file_path')
+      .eq('user_id', userId);
+
+    if (uploads && uploads.length > 0) {
+      await supabase.storage
+        .from('evidence')
+        .remove(uploads.map((u) => u.file_path));
     }
+
+    // Delete all user data rows
+    await supabase.from('cases').delete().eq('user_id', userId);
+    await supabase.from('portfolio_items').delete().eq('user_id', userId);
+    await supabase.from('uploads').delete().eq('user_id', userId);
+    await supabase.from('reminders').delete().eq('user_id', userId);
+    await supabase.from('profiles').delete().eq('id', userId);
+
+    // Call Edge Function to delete the auth.users record
+    const { error } = await supabase.functions.invoke('delete-user', {
+      method: 'POST',
+    });
+
+    if (error) {
+      toast('Failed to delete account. Please try again.', 'error');
+      setDeleting(false);
+      return;
+    }
+
     await signOut();
   };
-
   return (
     <div className="page-enter max-w-2xl space-y-8">
       <div>
