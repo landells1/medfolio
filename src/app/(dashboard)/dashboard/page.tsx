@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
 import { createClient } from '@/lib/supabase/client';
 import { ProgressRing } from '@/components/ui/progress';
-import * as Sentry from '@sentry/nextjs';
 import { SPECIALTIES, formatDate } from '@/lib/utils';
 import {
   Plus,
