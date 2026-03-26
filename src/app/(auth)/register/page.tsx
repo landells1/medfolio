@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 
 const TRAINING_STAGES = [
-  'FY1', 'FY2', 'F3', 'CT1', 'CT2', 'IMT1', 'IMT2', 'IMT3',
+  'Medical Student', 'FY1', 'FY2', 'F3', 'CT1', 'CT2', 'IMT1', 'IMT2', 'IMT3',
   'ST1', 'ST2', 'ST3', 'ST4', 'ST5', 'ST6', 'ST7', 'ST8',
   'SAS', 'Consultant', 'GP Trainee', 'Other',
 ];
