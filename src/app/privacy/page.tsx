@@ -31,7 +31,7 @@ export default function PrivacyPage() {
             </p>
             <p className="mt-2">
               For data protection inquiries, contact us at:{' '}
-              <strong>[YOUR EMAIL ADDRESS]</strong>
+              <strong>admin@medfolio.uk</strong>
             </p>
           </section>
 
