@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import { getSpecialtyById, getSpecialtyDbName, cn } from '@/lib/utils';
 import { ProgressBar, ProgressRing } from '@/components/ui/progress';
 import { useToast } from '@/components/ui/toast';
+import { ItemDetailPanel } from '@/components/portfolio/item-detail-panel';
 import {
   ChevronDown,
   ChevronRight,
@@ -71,6 +72,10 @@ export default function PortfolioSpecialtyPage() {
   const [savingItems, setSavingItems] = useState<Set<string>>(new Set());
   const debounceTimers = useRef<Record<string, NodeJS.Timeout>>({});
   const { toast } = useToast();
+
+  // Detail panel state
+  const [selectedItem, setSelectedItem] = useState<PortfolioItem | null>(null);
+  const [panelOpen, setPanelOpen] = useState(false);
 
   // --- DERIVED STATE: filter by selected year, no Supabase calls ---
   const templates = useMemo(
@@ -205,6 +210,17 @@ export default function PortfolioSpecialtyPage() {
   // Update local state helper — updates allItems so filtered views stay in sync
   const updateItems = (updater: (prev: PortfolioItem[]) => PortfolioItem[]) => {
     setAllItems(updater);
+  };
+
+  const handleItemClick = (item: PortfolioItem) => {
+    setSelectedItem(item);
+    setPanelOpen(true);
+  };
+
+  const handlePanelUpdate = (updated: PortfolioItem) => {
+    setAllItems((prev) => prev.map((i) => i.id === updated.id ? updated : i));
+    // Keep selectedItem in sync so panel reflects latest state
+    setSelectedItem(updated);
   };
 
   const toggleComplete = async (item: PortfolioItem) => {
@@ -436,7 +452,7 @@ export default function PortfolioSpecialtyPage() {
                 <p className="text-sm text-surface-500">
                   {completedItems === totalItems && totalItems > 0
                     ? 'All requirements met \u2014 well done!'
-                    : `${totalItems - completedItems} items remaining. Click checkboxes to mark complete.`}
+                    : `${totalItems - completedItems} items remaining. Click checkboxes to mark complete, or click an item name for details.`}
                 </p>
               </div>
             </div>
@@ -549,11 +565,15 @@ export default function PortfolioSpecialtyPage() {
                               )}
                             </button>
 
-                            <div className="flex-1 min-w-0">
+                            {/* Clickable item name opens detail panel */}
+                            <div
+                              className="flex-1 min-w-0 cursor-pointer"
+                              onClick={() => handleItemClick(item)}
+                            >
                               <div className="flex items-center gap-2">
                                 <p
                                   className={cn(
-                                    'text-sm font-medium',
+                                    'text-sm font-medium hover:text-brand-600 transition-colors',
                                     isComplete
                                       ? 'text-surface-400 line-through'
                                       : 'text-surface-800'
@@ -642,6 +662,13 @@ export default function PortfolioSpecialtyPage() {
           </div>
         </>
       )}
+
+      <ItemDetailPanel
+        item={selectedItem}
+        isOpen={panelOpen}
+        onClose={() => setPanelOpen(false)}
+        onUpdate={handlePanelUpdate}
+      />
     </div>
   );
 }
