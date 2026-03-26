@@ -4,12 +4,26 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/components/ui/toast';
+import { SPECIALTIES } from '@/lib/utils';
 import { User, Download, Trash2, Loader2, Check, Shield, FileText } from 'lucide-react';
 
 const TRAINING_STAGES = [
   'FY1', 'FY2', 'F3', 'CT1', 'CT2', 'IMT1', 'IMT2', 'IMT3',
   'ST1', 'ST2', 'ST3', 'ST4', 'ST5', 'ST6', 'ST7', 'ST8',
   'SAS', 'Consultant', 'GP_Trainee', 'Other',
+];
+
+const UK_REGIONS = [
+  'East of England',
+  'London',
+  'Midlands',
+  'North East and Yorkshire',
+  'North West',
+  'South East',
+  'South West',
+  'Wales',
+  'Scotland',
+  'Northern Ireland',
 ];
 
 export default function SettingsPage() {
@@ -27,7 +41,6 @@ export default function SettingsPage() {
   const [deleting, setDeleting] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState('');
 
-  // Sync form fields when profile loads (fixes blank form on first render)
   useEffect(() => {
     if (profile) {
       setFullName(profile.full_name || '');
@@ -143,7 +156,56 @@ export default function SettingsPage() {
     setExporting(false);
   };
 
-const handleDeleteAccount = async () => {
+  const handleExportPortfolioCSV = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) return;
+    setExporting(true);
+
+    const { data: items } = await supabase
+      .from('portfolio_items')
+      .select('*')
+      .eq('user_id', session.user.id)
+      .order('specialty')
+      .order('category');
+
+    if (items && items.length > 0) {
+      const headers = [
+        'Specialty', 'Category', 'Item', 'Status', 'Progress',
+        'Target', 'Date Completed', 'Supervisor', 'Notes',
+      ];
+
+      const rows = items.map((i) => [
+        i.specialty,
+        i.category,
+        i.title,
+        i.status.replace('_', ' '),
+        String(i.current_count),
+        String(i.target_count),
+        i.date_completed || '',
+        i.metadata?.supervisor_name || '',
+        i.notes || '',
+      ]);
+
+      const csvContent = [
+        headers.join(','),
+        ...rows.map((r) => r.map((cell) => `"${(cell || '').replace(/"/g, '""')}"`).join(',')),
+      ].join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `medfolio-portfolio-${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } else {
+      toast('No portfolio data to export yet', 'info');
+    }
+
+    setExporting(false);
+  };
+
+  const handleDeleteAccount = async () => {
     if (deleteConfirm !== 'DELETE') return;
     setDeleting(true);
 
@@ -152,7 +214,6 @@ const handleDeleteAccount = async () => {
 
     const userId = session.user.id;
 
-    // Delete storage files first
     const { data: uploads } = await supabase
       .from('uploads')
       .select('file_path')
@@ -164,14 +225,12 @@ const handleDeleteAccount = async () => {
         .remove(uploads.map((u) => u.file_path));
     }
 
-    // Delete all user data rows
     await supabase.from('cases').delete().eq('user_id', userId);
     await supabase.from('portfolio_items').delete().eq('user_id', userId);
     await supabase.from('uploads').delete().eq('user_id', userId);
     await supabase.from('reminders').delete().eq('user_id', userId);
     await supabase.from('profiles').delete().eq('id', userId);
 
-    // Call Edge Function to delete the auth.users record
     const { error } = await supabase.functions.invoke('delete-user', {
       method: 'POST',
     });
@@ -184,6 +243,7 @@ const handleDeleteAccount = async () => {
 
     await signOut();
   };
+
   return (
     <div className="page-enter max-w-2xl space-y-8">
       <div>
@@ -222,7 +282,12 @@ const handleDeleteAccount = async () => {
 
           <div>
             <label className="block text-sm font-medium text-surface-700 mb-1.5">Region</label>
-            <input type="text" value={region} onChange={(e) => setRegion(e.target.value)} className="input-field" placeholder="e.g. London, South East" />
+            <select value={region} onChange={(e) => setRegion(e.target.value)} className="input-field">
+              <option value="">Select your region...</option>
+              {UK_REGIONS.map((r) => (
+                <option key={r} value={r}>{r}</option>
+              ))}
+            </select>
           </div>
 
           <button type="submit" disabled={saving} className="btn-primary">
@@ -239,17 +304,20 @@ const handleDeleteAccount = async () => {
           <h2 className="font-display font-semibold text-surface-900">Export your data</h2>
         </div>
         <p className="text-sm text-surface-500 mb-4">
-          Download all your data. You can use the JSON export to back up everything,
-          or the CSV export to get your cases in spreadsheet format.
+          Download all your data in various formats.
         </p>
         <div className="flex flex-wrap gap-3">
           <button onClick={handleExportData} disabled={exporting} className="btn-secondary">
             <FileText className="w-4 h-4" />
-            Export all data (JSON)
+            Everything (JSON)
           </button>
           <button onClick={handleExportCSV} disabled={exporting} className="btn-secondary">
             <FileText className="w-4 h-4" />
-            Export cases (CSV)
+            Cases (CSV)
+          </button>
+          <button onClick={handleExportPortfolioCSV} disabled={exporting} className="btn-secondary">
+            <FileText className="w-4 h-4" />
+            Portfolio progress (CSV)
           </button>
         </div>
       </div>
