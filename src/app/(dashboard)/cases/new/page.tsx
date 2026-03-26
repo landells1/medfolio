@@ -70,7 +70,6 @@ export default function CaseJournalPage() {
     custom_tags: '',
   });
 
-  const [anonymisationChecked, setAnonymisationChecked] = useState(false);
 
   const fetchCases = useCallback(async () => {
     setLoading(true);
@@ -132,7 +131,7 @@ export default function CaseJournalPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!userId || !anonymisationChecked) return;
+    if (!userId) return;
     setSaving(true);
 
     const { data, error } = await supabase
@@ -183,7 +182,6 @@ export default function CaseJournalPage() {
       complexity: 'routine',
       custom_tags: '',
     });
-    setAnonymisationChecked(false);
   };
 
   const toggleSpecialtyTag = (tag: string) => {
@@ -320,16 +318,10 @@ export default function CaseJournalPage() {
               <input type="text" value={form.custom_tags} onChange={(e) => setForm((p) => ({ ...p, custom_tags: e.target.value }))} className="input-field" placeholder="e.g. acute, exam-relevant, MDT discussion" />
             </div>
 
-            <label className="flex items-start gap-3 p-4 rounded-lg bg-surface-50 border border-surface-200 cursor-pointer">
-              <input type="checkbox" checked={anonymisationChecked} onChange={(e) => setAnonymisationChecked(e.target.checked)} className="mt-0.5 w-4 h-4 rounded border-surface-300 text-brand-600 focus:ring-brand-500" />
-              <span className="text-sm text-surface-700">
-                I confirm this case has been anonymised following <strong>GMC guidance</strong> — no patient-identifiable information is included.
-              </span>
-            </label>
 
             <div className="flex gap-3 justify-end">
               <button type="button" onClick={() => { setShowForm(false); resetForm(); }} className="btn-secondary">Cancel</button>
-              <button type="submit" disabled={saving || !anonymisationChecked} className="btn-primary">
+              <button type="submit" disabled={saving} className="btn-primary">
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <BookOpen className="w-4 h-4" />}
                 Save case
               </button>
