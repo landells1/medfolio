@@ -19,6 +19,8 @@ import {
   RefreshCw,
 } from 'lucide-react';
 
+const PAGE_SIZE = 20;
+
 const SPECIALTY_OPTIONS = [
   'General Medicine', 'General Surgery', 'Cardiology', 'Respiratory',
   'Gastroenterology', 'Neurology', 'Endocrinology', 'Rheumatology',
@@ -44,6 +46,8 @@ export default function CaseJournalPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [cases, setCases] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -86,8 +90,11 @@ export default function CaseJournalPage() {
         .from('cases')
         .select('*')
         .eq('user_id', session.user.id)
-        .order('date_seen', { ascending: false });
+        .order('date_seen', { ascending: false })
+        .range(0, PAGE_SIZE - 1);
+
       setCases(data || []);
+      setHasMore((data || []).length === PAGE_SIZE);
     } catch (err) {
       console.error('[MedFolio] Cases load error:', err);
       setError('Failed to load cases. Please try again.');
@@ -95,6 +102,23 @@ export default function CaseJournalPage() {
 
     setLoading(false);
   }, [supabase]);
+
+  const loadMore = async () => {
+    if (loadingMore || !userId) return;
+    setLoadingMore(true);
+
+    const { data } = await supabase
+      .from('cases')
+      .select('*')
+      .eq('user_id', userId)
+      .order('date_seen', { ascending: false })
+      .range(cases.length, cases.length + PAGE_SIZE - 1);
+
+    const newCases = data || [];
+    setCases((prev) => [...prev, ...newCases]);
+    setHasMore(newCases.length === PAGE_SIZE);
+    setLoadingMore(false);
+  };
 
   useEffect(() => {
     fetchCases();
@@ -383,6 +407,16 @@ export default function CaseJournalPage() {
           ))}
         </div>
       )}
+
+      {hasMore && (
+        <div className="flex justify-center pt-2">
+          <button onClick={loadMore} disabled={loadingMore} className="btn-secondary">
+            {loadingMore ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+            Load more cases
+          </button>
+        </div>
+      )}
+
     </div>
   );
 }
