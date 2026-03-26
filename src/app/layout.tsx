@@ -6,8 +6,8 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'MedFolio — Your Medical Portfolio Companion',
   description:
-    'A modern portfolio companion for UK junior doctors. Track your training, log interesting cases, and prepare for career milestones.',
-  keywords: ['medical portfolio', 'junior doctor', 'ARCP', 'ePortfolio', 'UK medicine'],
+    'A modern portfolio companion for UK doctors. Track your training, log interesting cases, and prepare for career milestones.',
+  keywords: ['medical portfolio', 'junior doctor', 'doctor', 'resident doctor' , 'ARCP', 'ePortfolio', 'UK medicine'],
   icons: {
     icon: '/favicon.svg',
   },
