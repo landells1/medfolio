@@ -6,9 +6,17 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 
+const TRAINING_STAGES = [
+  'FY1', 'FY2', 'F3', 'CT1', 'CT2', 'IMT1', 'IMT2', 'IMT3',
+  'ST1', 'ST2', 'ST3', 'ST4', 'ST5', 'ST6', 'ST7', 'ST8',
+  'SAS', 'Consultant', 'GP Trainee', 'Other',
+];
+
 export default function RegisterPage() {
-  const [fullName, setFullName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
+  const [trainingStage, setTrainingStage] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -28,11 +36,16 @@ export default function RegisterPage() {
       return;
     }
 
+    const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
+
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { full_name: fullName },
+        data: {
+          full_name: fullName,
+          training_stage: trainingStage || null,
+        },
         emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });
@@ -46,16 +59,6 @@ export default function RegisterPage() {
     }
   };
 
-  const handleGoogleSignup = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
-    if (error) setError(error.message);
-  };
-
   if (success) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
@@ -66,9 +69,12 @@ export default function RegisterPage() {
             </svg>
           </div>
           <h1 className="font-display text-2xl font-bold text-surface-900 mb-2">Check your email</h1>
-          <p className="text-surface-500 mb-6">
+          <p className="text-surface-500 mb-3">
             We&apos;ve sent a confirmation link to <strong className="text-surface-700">{email}</strong>.
             Click the link to activate your account.
+          </p>
+          <p className="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-4 py-2.5 mb-6">
+            Can&apos;t find it? Check your <strong>spam or junk folder</strong>.
           </p>
           <Link href="/login" className="btn-secondary">
             Back to login
@@ -124,16 +130,29 @@ export default function RegisterPage() {
           {/* Google OAuth — hidden until credentials are configured */}
 
           <form onSubmit={handleRegister} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-surface-700 mb-1.5">Full name</label>
-              <input
-                type="text"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                className="input-field"
-                placeholder="Dr Jane Smith"
-                required
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-surface-700 mb-1.5">First name</label>
+                <input
+                  type="text"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  className="input-field"
+                  placeholder="Jane"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-surface-700 mb-1.5">Last name</label>
+                <input
+                  type="text"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  className="input-field"
+                  placeholder="Smith"
+                  required
+                />
+              </div>
             </div>
 
             <div>
@@ -146,6 +165,20 @@ export default function RegisterPage() {
                 placeholder="you@nhs.net"
                 required
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-surface-700 mb-1.5">Training stage</label>
+              <select
+                value={trainingStage}
+                onChange={(e) => setTrainingStage(e.target.value)}
+                className="input-field"
+              >
+                <option value="">Select your stage...</option>
+                {TRAINING_STAGES.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
             </div>
 
             <div>
