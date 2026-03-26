@@ -196,12 +196,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between mb-6">
             <h2 className="font-display font-semibold text-surface-900">Portfolio progress</h2>
           </div>
-<button
-  onClick={() => Sentry.captureException(new Error('Sentry test error'))}
-  className="btn-secondary text-sm"
->
-  Test Sentry
-</button>
+
           {SPECIALTIES.length < 1 ? (
             <div className="text-center py-12">
               <Stethoscope className="w-10 h-10 text-surface-300 mx-auto mb-3" />
