@@ -84,7 +84,12 @@ export default function DashboardPage() {
           };
         }
       }
-
+<button
+  onClick={() => { throw new Error('Sentry test error'); }}
+  className="btn-secondary text-sm"
+>
+  Test Sentry
+</button>
       setStats({
         totalCases: totalRes.count || 0,
         casesThisMonth: monthRes.count || 0,
