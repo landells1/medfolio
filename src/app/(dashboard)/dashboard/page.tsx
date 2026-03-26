@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
 import { createClient } from '@/lib/supabase/client';
 import { ProgressRing } from '@/components/ui/progress';
+import * as Sentry from '@sentry/nextjs';
 import { SPECIALTIES, formatDate } from '@/lib/utils';
 import {
   Plus,
@@ -196,7 +197,7 @@ export default function DashboardPage() {
             <h2 className="font-display font-semibold text-surface-900">Portfolio progress</h2>
           </div>
 <button
-  onClick={() => { throw new Error('Sentry test error'); }}
+  onClick={() => Sentry.captureException(new Error('Sentry test error'))}
   className="btn-secondary text-sm"
 >
   Test Sentry
