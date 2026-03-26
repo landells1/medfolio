@@ -4,6 +4,8 @@ import { createContext, useContext, useEffect, useState, useRef, type ReactNode 
 import { createClient } from '@/lib/supabase/client';
 import type { User, Session } from '@supabase/supabase-js';
 
+const PROFILE_CACHE_KEY = 'medfolio_profile_cache';
+
 type AuthContextType = {
   user: User | null;
   session: Session | null;
@@ -25,10 +27,20 @@ const AuthContext = createContext<AuthContextType>({
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [profile, setProfile] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const initialized = useRef(false);
   const supabase = createClient();
+
+  // Read cached profile synchronously so sidebar never flickers to default
+  const [profile, setProfile] = useState<any | null>(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const cached = localStorage.getItem(PROFILE_CACHE_KEY);
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  });
 
   const fetchProfile = async (userId: string) => {
     try {
@@ -37,7 +49,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .select('*')
         .eq('id', userId)
         .single();
-      if (data) setProfile(data);
+      if (data) {
+        setProfile(data);
+        // Update cache with fresh data
+        try {
+          localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(data));
+        } catch {}
+      }
     } catch (err) {
       console.error('[MedFolio] Profile fetch error:', err);
     }
@@ -62,6 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await fetchProfile(newSession.user.id);
         } else {
           setProfile(null);
+          try { localStorage.removeItem(PROFILE_CACHE_KEY); } catch {}
         }
 
         setLoading(false);
@@ -80,6 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setSession(null);
     setProfile(null);
+    try { localStorage.removeItem(PROFILE_CACHE_KEY); } catch {}
     window.location.href = '/';
   };
 
