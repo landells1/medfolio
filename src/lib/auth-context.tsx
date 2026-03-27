@@ -42,6 +42,8 @@ useEffect(() => {
 }, []);
   
   const fetchProfile = async (userId: string) => {
+      supabase.from('profiles').select('id').eq('id', userId).single().then(() => {});
+
     try {
       const { data } = await supabase
         .from('profiles')
