@@ -32,16 +32,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const supabase = createClient();
 
   // Read cached profile synchronously so sidebar never flickers to default
-  const [profile, setProfile] = useState<any | null>(() => {
-    if (typeof window === 'undefined') return null;
-    try {
-      const cached = localStorage.getItem(PROFILE_CACHE_KEY);
-      return cached ? JSON.parse(cached) : null;
-    } catch {
-      return null;
-    }
-  });
+const [profile, setProfile] = useState<any | null>(null);
 
+useEffect(() => {
+  try {
+    const cached = localStorage.getItem(PROFILE_CACHE_KEY);
+    if (cached) setProfile(JSON.parse(cached));
+  } catch {}
+}, []);
+  
   const fetchProfile = async (userId: string) => {
     try {
       const { data } = await supabase
