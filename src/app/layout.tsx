@@ -4,7 +4,7 @@ import { ToastProvider } from '@/components/ui/toast';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'MedFolio — Your Medical Portfolio Companion',
+  title: 'MedFolio — Your Medical Portfolio Companion - Coming Soon',
   description:
     'A modern portfolio companion for UK doctors. Track your training, log interesting cases, and prepare for career milestones.',
   keywords: ['medical portfolio', 'junior doctor', 'doctor', 'resident doctor' , 'ARCP', 'ePortfolio', 'UK medicine'],
