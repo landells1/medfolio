@@ -65,7 +65,7 @@ export default function LandingPage() {
             Free during early access
           </div>
           <h1 className="font-display text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.08] mb-6">
-            Your portfolio,{' '}
+            Coming Soon, Your portfolio,{' '}
             <span className="bg-gradient-to-r from-brand-400 via-brand-300 to-brand-400 bg-clip-text text-transparent">
               actually useful
             </span>
