@@ -15,6 +15,8 @@ import {
   Menu,
   X,
   Compass,
+  MessageSquarePlus,
+
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -165,7 +167,19 @@ export function Sidebar() {
             {item.label}
           </a>
         ))}
-
+<button
+  onClick={() => {
+    window.open(
+      'mailto:admin@medfolio.uk?subject=MedFolio%20Feedback&body=Type%3A%20Bug%20report%20%2F%20Feature%20request%20(delete%20as%20appropriate)%0A%0ADescription%3A%0A',
+      '_blank'
+    );
+  }}
+  className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-surface-400 hover:text-white hover:bg-white/5 transition-all duration-150 w-full"
+>
+  <MessageSquarePlus className="w-[18px] h-[18px] flex-shrink-0" />
+  Send feedback
+</button>
+        
         <button
           onClick={signOut}
           className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-surface-400 hover:text-red-400 hover:bg-red-500/10 transition-all duration-150 w-full"
