@@ -4,7 +4,7 @@ import type { Database } from '@/lib/database.types';
 
 let client: SupabaseClient<Database> | null = null;
 
-export function createClient() {
+export function createClient(): SupabaseClient<Database> {
   if (client) return client;
 
   client = createBrowserClient<Database>(
