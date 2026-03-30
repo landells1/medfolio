@@ -6,7 +6,7 @@ import { useAuth } from '@/lib/auth-context';
 import { createClient } from '@/lib/supabase/client';
 import { ProgressRing } from '@/components/ui/progress';
 import { SPECIALTIES, formatDate } from '@/lib/utils';
-import type { CaseRow } from '@/lib/database.types';
+import type { CaseRow, PortfolioItemRow } from '@/lib/database.types';
 import {
   Plus,
   BookOpen,
@@ -22,6 +22,8 @@ import {
 type YearProgress = Record<string, { completed: number; total: number }>;
 type SpecialtyProgress = Record<string, YearProgress>;
 type RecentCase = Pick<CaseRow, 'id' | 'title' | 'specialty_tags' | 'date_seen'>;
+type TemplateSummary = { id: string; specialty: string; training_year: string };
+type PortfolioSummary = Pick<PortfolioItemRow, 'specialty' | 'status' | 'template_id'>;
 
 export default function DashboardPage() {
   const { profile } = useAuth();
@@ -83,15 +85,19 @@ export default function DashboardPage() {
       if (recentRes.error) throw recentRes.error;
       if (portfolioRes.error) throw portfolioRes.error;
       if (templatesRes.error) throw templatesRes.error;
+
+      const templateRows: TemplateSummary[] = templatesRes.data ?? [];
+      const allPortfolioItems: PortfolioSummary[] = portfolioRes.data ?? [];
+      const recentCaseRows: RecentCase[] = recentRes.data ?? [];
+
       // Build a lookup: template_id -> training_year
       const templateYearMap: Record<string, string> = {};
-      for (const t of templatesRes.data || []) {
+      for (const t of templateRows) {
         templateYearMap[t.id] = t.training_year;
       }
 
       // Build progress: spec.id -> training_year -> { completed, total }
       const progress: SpecialtyProgress = {};
-      const allPortfolioItems = portfolioRes.data || [];
 
       for (const spec of SPECIALTIES) {
         const specItems = allPortfolioItems.filter((i) => i.specialty === spec.name);
@@ -116,7 +122,7 @@ export default function DashboardPage() {
         casesThisMonth: monthRes.count || 0,
         portfolioProgress: progress,
       });
-      setRecentCases(recentRes.data || []);
+      setRecentCases(recentCaseRows);
     } catch (err) {
       console.error('[MedFolio] Dashboard load error:', err);
       setError('Failed to load dashboard. Please try again.');
