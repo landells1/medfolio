@@ -94,8 +94,9 @@ export default function CaseJournalPage() {
         .range(0, PAGE_SIZE - 1);
 
       if (error) throw error;
-      setCases(data || []);
-      setHasMore((data || []).length === PAGE_SIZE);
+      const initialCases: CaseListItem[] = data ?? [];
+      setCases(initialCases);
+      setHasMore(initialCases.length === PAGE_SIZE);
     } catch (err) {
       console.error('[MedFolio] Cases load error:', err);
       setError('Failed to load cases. Please try again.');
@@ -120,7 +121,7 @@ export default function CaseJournalPage() {
       toast('Failed to load more cases. Please try again.', 'error');
       return;
     }
-    const newCases = data || [];
+    const newCases: CaseListItem[] = data ?? [];
     setCases((prev) => [...prev, ...newCases]);
     setHasMore(newCases.length === PAGE_SIZE);
     setLoadingMore(false);
@@ -173,8 +174,10 @@ export default function CaseJournalPage() {
       return;
     }
 
-    if (data) {
-      setCases((prev) => [data, ...prev]);
+    const insertedCase = data as unknown as CaseListItem | null;
+
+    if (insertedCase) {
+      setCases((prev) => [insertedCase, ...prev]);
       setShowForm(false);
       resetForm();
       toast('Case saved successfully');

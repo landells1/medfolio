@@ -133,7 +133,7 @@ export default function PortfolioSpecialtyPage() {
 
       if (cancelled.current) return;
 
-      const fetchedTemplates = templatesRes.data || [];
+      const fetchedTemplates: Template[] = templatesRes.data ?? [];
       const existingItems: PortfolioItem[] = itemsRes.data ?? [];
 
       // Auto-initialise missing items for ALL years at once

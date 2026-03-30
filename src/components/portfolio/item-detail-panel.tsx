@@ -83,7 +83,8 @@ export function ItemDetailPanel({
       return;
     }
 
-    setUploads(data || []);
+    const uploadRows: UploadRow[] = data ?? [];
+    setUploads(uploadRows);
   };
 
   const handleSave = async () => {

@@ -5,7 +5,7 @@ import { useAuth } from '@/lib/auth-context';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/components/ui/toast';
 import { User, Download, Trash2, Loader2, Check, Shield, FileText } from 'lucide-react';
-import type { ProfileUpdate, TrainingStage } from '@/lib/database.types';
+import type { CaseRow, PortfolioItemRow, ProfileUpdate, TrainingStage, UploadRow } from '@/lib/database.types';
 
 const TRAINING_STAGES: Array<{ value: TrainingStage; label: string }> = [
   { value: 'Medical Student', label: 'Medical Student' },
@@ -118,6 +118,11 @@ export default function SettingsPage() {
       supabase.from('reminders').select('*').eq('user_id', userId),
     ]);
 
+    const exportedCases: CaseRow[] = (casesRes.data ?? []) as CaseRow[];
+    const exportedItems: PortfolioItemRow[] = (itemsRes.data ?? []) as PortfolioItemRow[];
+    const exportedUploads: UploadRow[] = (uploadsRes.data ?? []) as UploadRow[];
+    const exportedReminders = remindersRes.data ?? [];
+
     const exportData = {
       exported_at: new Date().toISOString(),
       profile: {
@@ -127,10 +132,10 @@ export default function SettingsPage() {
         primary_specialty: primarySpecialty,
         region,
       },
-      cases: casesRes.data || [],
-      portfolio_items: itemsRes.data || [],
-      uploads_metadata: uploadsRes.data || [],
-      reminders: remindersRes.data || [],
+      cases: exportedCases,
+      portfolio_items: exportedItems,
+      uploads_metadata: exportedUploads,
+      reminders: exportedReminders,
     };
 
     const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
@@ -155,13 +160,15 @@ export default function SettingsPage() {
       .eq('user_id', session.user.id)
       .order('date_seen', { ascending: false });
 
-    if (cases && cases.length > 0) {
+    const exportedCases: CaseRow[] = (cases ?? []) as CaseRow[];
+
+    if (exportedCases.length > 0) {
       const headers = [
         'Title', 'Date Seen', 'Specialties', 'Presenting Complaint',
         'Key Findings', 'Diagnosis', 'Management', 'Outcome',
         'Learning Points', 'Reflection', 'Complexity', 'Tags',
       ];
-      const rows = cases.map((c) => [
+      const rows = exportedCases.map((c) => [
         c.title, c.date_seen, (c.specialty_tags || []).join('; '),
         c.presenting_complaint, c.key_findings, c.diagnosis, c.management,
         c.outcome, c.learning_points, c.reflection, c.complexity,
@@ -197,13 +204,15 @@ export default function SettingsPage() {
       .order('specialty')
       .order('category');
 
-    if (items && items.length > 0) {
+    const exportedItems: PortfolioItemRow[] = (items ?? []) as PortfolioItemRow[];
+
+    if (exportedItems.length > 0) {
       const headers = [
         'Specialty', 'Category', 'Item', 'Status', 'Progress',
         'Target', 'Date Completed', 'Supervisor', 'Notes',
       ];
 
-      const rows = items.map((i) => {
+      const rows = exportedItems.map((i) => {
         const metadata: Record<string, unknown> =
           typeof i.metadata === 'object' && i.metadata && !Array.isArray(i.metadata)
             ? (i.metadata as Record<string, unknown>)
