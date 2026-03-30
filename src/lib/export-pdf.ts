@@ -31,7 +31,7 @@ type CaseEntry = {
   outcome: string;
   learning_points: string;
   reflection: string;
-  complexity: string;
+  complexity: string | null;
 };
 
 export async function exportPortfolioPDF(
