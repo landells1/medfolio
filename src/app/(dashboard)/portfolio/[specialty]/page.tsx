@@ -20,24 +20,9 @@ import {
   AlertCircle,
   RefreshCw,
 } from 'lucide-react';
-import type { Json, PortfolioItemInsert, PortfolioItemRow, PortfolioItemUpdate, UploadRow } from '@/lib/database.types';
+import type { PortfolioItemInsert, PortfolioItemRow, PortfolioItemUpdate, UploadRow } from '@/lib/database.types';
 
-type PortfolioItem = {
-  id: string;
-  template_id: string;
-  specialty: string;
-  category: string;
-  subcategory: string;
-  title: string;
-  description: string;
-  status: 'not_started' | 'in_progress' | 'completed';
-  current_count: number;
-  target_count: number;
-  notes: string;
-  date_completed: string | null;
-  evidence_urls: string[];
-  metadata: Json;
-};
+type PortfolioItem = PortfolioItemRow;
 
 type Template = {
   id: string;
