@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { FileUpload } from '@/components/ui/file-upload';
 import { ArrowLeft, Save, Loader2, AlertTriangle, AlertCircle, RefreshCw } from 'lucide-react';
-import type { CaseRow } from '@/lib/database.types';
+import type { CaseComplexity, CaseRow } from '@/lib/database.types';
 
 const SPECIALTY_OPTIONS = [
   'General Medicine', 'General Surgery', 'Cardiology', 'Respiratory',
@@ -38,7 +38,7 @@ export default function CaseEditPage() {
     outcome: '',
     learning_points: '',
     reflection: '',
-    complexity: 'routine' as string,
+    complexity: 'routine' as CaseComplexity,
     custom_tags: '',
   });
 

@@ -32,15 +32,19 @@ export default function EvidencePage() {
         return;
       }
 
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('portfolio_items')
         .select('*')
         .eq('id', itemId)
         .eq('user_id', session.user.id)
         .single();
-      if (data) {
-        setItem(data);
-        setNotes(data.notes || '');
+
+      if (error) throw error;
+      const fetchedItem: PortfolioItemRow | null = data;
+
+      if (fetchedItem) {
+        setItem(fetchedItem);
+        setNotes(fetchedItem.notes || '');
       }
     } catch (err) {
       console.error('[MedFolio] Evidence load error:', err);

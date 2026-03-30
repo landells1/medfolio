@@ -36,13 +36,16 @@ export default function CaseDetailPage() {
 
       setUserId(session.user.id);
 
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('cases')
         .select('*')
         .eq('id', params.id)
         .eq('user_id', session.user.id)
         .single();
-      setCaseData(data);
+
+      if (error) throw error;
+      const fetchedCase: CaseRow | null = data;
+      setCaseData(fetchedCase);
     } catch (err) {
       console.error('[MedFolio] Case load error:', err);
       setError('Failed to load case. Please try again.');

@@ -20,6 +20,7 @@ import {
   AlertCircle,
   RefreshCw,
 } from 'lucide-react';
+import type { Json, PortfolioItemRow } from '@/lib/database.types';
 
 type PortfolioItem = {
   id: string;
@@ -35,7 +36,7 @@ type PortfolioItem = {
   notes: string;
   date_completed: string | null;
   evidence_urls: string[];
-  metadata: any;
+  metadata: Json;
 };
 
 type Template = {
@@ -133,7 +134,7 @@ export default function PortfolioSpecialtyPage() {
       if (cancelled.current) return;
 
       const fetchedTemplates = templatesRes.data || [];
-      const existingItems = itemsRes.data || [];
+      const existingItems: PortfolioItem[] = itemsRes.data ?? [];
 
       // Auto-initialise missing items for ALL years at once
       const existingTemplateIds = new Set(existingItems.map((i) => i.template_id));
@@ -165,12 +166,12 @@ export default function PortfolioSpecialtyPage() {
         if (cancelled.current) return;
         combinedItems = Array.from(
           new Map(
-            [...existingItems, ...(inserted || [])].map((portfolioItem) => [
+            [...existingItems, ...((inserted ?? []) as PortfolioItemRow[])].map((portfolioItem) => [
               portfolioItem.template_id ?? portfolioItem.id,
               portfolioItem,
             ])
           ).values()
-        );
+        ) as PortfolioItem[];
       }
 
       // Fetch upload counts for all items
@@ -197,7 +198,7 @@ export default function PortfolioSpecialtyPage() {
       setAllTemplates(fetchedTemplates);
       setAllItems(combinedItems);
       setUploadCounts(counts);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('[MedFolio] Portfolio load error:', err);
       if (!cancelled.current) {
         setError('Failed to load portfolio. Please try again.');

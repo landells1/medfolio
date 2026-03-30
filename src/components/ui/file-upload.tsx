@@ -14,6 +14,7 @@ import {
   X,
   AlertCircle,
 } from 'lucide-react';
+import type { UploadRow } from '@/lib/database.types';
 
 const ALLOWED_TYPES = [
   'application/pdf',
@@ -35,6 +36,11 @@ type UploadedFile = {
   mime_type: string;
   created_at: string;
 };
+
+type UploadInsertRecord = Pick<
+  UploadRow,
+  'user_id' | 'portfolio_item_id' | 'case_id' | 'file_name' | 'file_path' | 'file_size' | 'mime_type'
+>;
 
 interface FileUploadProps {
   portfolioItemId?: string;
@@ -78,8 +84,13 @@ export function FileUpload({
     if (portfolioItemId) query = query.eq('portfolio_item_id', portfolioItemId);
     if (caseId) query = query.eq('case_id', caseId);
 
-    const { data } = await query;
-    const newFiles = data || [];
+    const { data, error } = await query;
+    if (error) {
+      setError('Failed to load uploaded files. Please try again.');
+      return;
+    }
+
+    const newFiles: UploadedFile[] = data ?? [];
     setFiles(newFiles);
     onFilesChange?.(newFiles);
   }, [portfolioItemId, caseId, supabase]);
@@ -121,19 +132,19 @@ export function FileUpload({
 
       if (uploadError) throw uploadError;
 
-      const { data: uploadRecord, error: dbError } = await supabase
+      const uploadRecord: UploadInsertRecord = {
+        user_id: userId,
+        portfolio_item_id: portfolioItemId || null,
+        case_id: caseId || null,
+        file_name: file.name,
+        file_path: filePath,
+        file_size: file.size,
+        mime_type: file.type,
+      };
+
+      const { error: dbError } = await supabase
         .from('uploads')
-        .insert({
-          user_id: userId,
-          portfolio_item_id: portfolioItemId || null,
-          case_id: caseId || null,
-          file_name: file.name,
-          file_path: filePath,
-          file_size: file.size,
-          mime_type: file.type,
-        })
-        .select()
-        .single();
+        .insert(uploadRecord);
 
       if (dbError) throw dbError;
 
