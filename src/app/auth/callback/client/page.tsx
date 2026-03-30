@@ -65,7 +65,7 @@ function AuthCallbackClientContent() {
           return;
         }
 
-        router.replace(next);
+        window.location.assign(next);
       } catch (err) {
         console.error('[MedFolio] Auth callback error:', err);
         setMode('error');
@@ -101,7 +101,7 @@ function AuthCallbackClientContent() {
       return;
     }
 
-    router.replace('/dashboard');
+    window.location.assign('/dashboard');
   };
 
   if (mode === 'loading') {

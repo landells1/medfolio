@@ -40,6 +40,7 @@ export default function DashboardPage() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
+    let baseDataLoaded = false;
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -123,12 +124,15 @@ export default function DashboardPage() {
         portfolioProgress: progress,
       });
       setRecentCases(recentCaseRows);
+      baseDataLoaded = true;
     } catch (err) {
       console.error('[MedFolio] Dashboard load error:', err);
-      setError('Failed to load dashboard. Please try again.');
+      if (!baseDataLoaded) {
+        setError('Failed to load dashboard. Please try again.');
+      }
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   }, [supabase]);
 
   useEffect(() => {
