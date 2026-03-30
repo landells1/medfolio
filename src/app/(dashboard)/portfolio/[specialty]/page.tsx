@@ -55,6 +55,7 @@ export default function PortfolioSpecialtyPage() {
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [initialising, setInitialising] = useState(false);
   const [savingItems, setSavingItems] = useState<Set<string>>(new Set());
   const debounceTimers = useRef<Record<string, NodeJS.Timeout>>({});
   const { toast } = useToast();
@@ -87,6 +88,7 @@ export default function PortfolioSpecialtyPage() {
   const loadData = useCallback(async (cancelled: { current: boolean }) => {
     setLoading(true);
     setError(null);
+    setInitialising(false);
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -121,6 +123,10 @@ export default function PortfolioSpecialtyPage() {
       const fetchedTemplates: Template[] = templatesRes.data ?? [];
       const existingItems: PortfolioItem[] = itemsRes.data ?? [];
 
+      setAllTemplates(fetchedTemplates);
+      setAllItems(existingItems);
+      setLoading(false);
+
       // Auto-initialise missing items for ALL years at once
       const existingTemplateIds = new Set(existingItems.map((i) => i.template_id));
       const missing = fetchedTemplates.filter((t) => !existingTemplateIds.has(t.id));
@@ -128,6 +134,7 @@ export default function PortfolioSpecialtyPage() {
       let combinedItems = existingItems;
 
       if (missing.length > 0) {
+        setInitialising(true);
         const newItems: PortfolioItemInsert[] = missing.map((t) => ({
           user_id: userId,
           template_id: t.id,
@@ -157,6 +164,8 @@ export default function PortfolioSpecialtyPage() {
             ])
           ).values()
         ) as PortfolioItem[];
+
+        setAllItems(combinedItems);
       }
 
       // Fetch upload counts for all items
@@ -182,18 +191,23 @@ export default function PortfolioSpecialtyPage() {
 
       if (cancelled.current) return;
 
-      setAllTemplates(fetchedTemplates);
-      setAllItems(combinedItems);
       setUploadCounts(counts);
     } catch (err: unknown) {
       console.error('[MedFolio] Portfolio load error:', err);
       if (!cancelled.current) {
-        setError('Failed to load portfolio. Please try again.');
+        if (loading) {
+          setError('Failed to load portfolio. Please try again.');
+        } else {
+          toast('Checklist initialisation is taking longer than expected. Refresh in a moment if items are missing.', 'info');
+        }
+      }
+    } finally {
+      if (!cancelled.current) {
+        setLoading(false);
+        setInitialising(false);
       }
     }
-
-    if (!cancelled.current) setLoading(false);
-  }, [dbName, supabase]);
+  }, [dbName, loading, supabase, toast]);
 
   // Only runs once per specialty (dbName), NOT on year change
   useEffect(() => {
@@ -483,6 +497,13 @@ export default function PortfolioSpecialtyPage() {
         </div>
       ) : (
         <>
+          {initialising && (
+            <div className="flex items-center gap-2 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-700">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Initialising checklist items for this specialty...
+            </div>
+          )}
+
           {/* Overall progress card */}
           <div className="card p-6">
             <div className="flex flex-col sm:flex-row items-center gap-6">
