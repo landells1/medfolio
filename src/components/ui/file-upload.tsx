@@ -142,8 +142,8 @@ export function FileUpload({
       if (dbError) throw dbError;
 
       await refreshFiles();
-    } catch (err: any) {
-      setError(err.message || 'Upload failed. Please try again.');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Upload failed. Please try again.');
     }
 
     setUploading(false);
@@ -168,8 +168,33 @@ export function FileUpload({
 
   const handleDelete = async (upload: UploadedFile) => {
     if (!confirm(`Delete ${upload.file_name}?`)) return;
-    await supabase.storage.from('evidence').remove([upload.file_path]);
-    await supabase.from('uploads').delete().eq('id', upload.id);
+
+    const userId = await getUserId();
+    if (!userId) {
+      setError('Not signed in. Please log in and try again.');
+      return;
+    }
+
+    const { error: storageError } = await supabase.storage
+      .from('evidence')
+      .remove([upload.file_path]);
+
+    if (storageError) {
+      setError('Failed to delete file. Please try again.');
+      return;
+    }
+
+    const { error: dbError } = await supabase
+      .from('uploads')
+      .delete()
+      .eq('id', upload.id)
+      .eq('user_id', userId);
+
+    if (dbError) {
+      setError('File removed from storage but record could not be deleted. Please refresh.');
+      return;
+    }
+
     await refreshFiles();
   };
 

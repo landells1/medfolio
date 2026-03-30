@@ -16,17 +16,10 @@ export function formatDate(date: string | Date): string {
 export function getInitials(name: string): string {
   return name
     .split(' ')
-    .map((n) => n[0])
+    .map((n) => n[0] ?? '')
     .join('')
     .toUpperCase()
     .slice(0, 2);
-}
-
-export function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '');
 }
 
 export const SPECIALTIES = [

@@ -36,11 +36,13 @@ export default function AnalyticsPage() {
       const userId = session.user.id;
 
       // Fetch cases and all portfolio items in parallel (single query each)
+      // 5000-row cap prevents unbounded memory use for large accounts
       const [casesRes, portfolioRes] = await Promise.all([
         supabase
           .from('cases')
           .select('date_seen, specialty_tags, complexity')
-          .eq('user_id', userId),
+          .eq('user_id', userId)
+          .limit(5000),
         supabase.from('portfolio_items').select('specialty, status').eq('user_id', userId),
       ]);
 

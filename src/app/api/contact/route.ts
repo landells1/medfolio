@@ -3,6 +3,10 @@ import { NextRequest, NextResponse } from 'next/server';
 const WINDOW_MS = 10 * 60 * 1000;
 const MAX_REQUESTS = 5;
 
+// NOTE: This in-memory store resets on every cold start and is NOT shared across
+// concurrent serverless instances. It provides basic abuse protection for low-traffic
+// scenarios but can be bypassed in production. For robust rate limiting, replace with
+// an external store (e.g. Upstash Redis) or a WAF/CDN-level rule.
 function getRateLimitStore() {
   const globalScope = globalThis as typeof globalThis & {
     __medfolioContactRateLimit?: Map<string, number[]>;

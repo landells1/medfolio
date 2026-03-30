@@ -418,7 +418,8 @@ export default function CaseJournalPage() {
         </div>
       )}
 
-      {hasMore && (
+      {/* Only show pagination when no filter is active — loadMore fetches unfiltered pages */}
+      {hasMore && !debouncedSearch && !filterSpecialty && (
         <div className="flex justify-center pt-2">
           <button onClick={loadMore} disabled={loadingMore} className="btn-secondary">
             {loadingMore ? <Loader2 className="w-4 h-4 animate-spin" /> : null}

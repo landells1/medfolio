@@ -15,10 +15,12 @@ export default function EvidencePage() {
   const supabase = createClient();
 
   const [item, setItem] = useState<PortfolioItemRow | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const fetchItem = useCallback(async () => {
     setLoading(true);
@@ -31,6 +33,8 @@ export default function EvidencePage() {
         setLoading(false);
         return;
       }
+
+      setUserId(session.user.id);
 
       const { data, error } = await supabase
         .from('portfolio_items')
@@ -59,15 +63,21 @@ export default function EvidencePage() {
   }, [fetchItem]);
 
   const handleSaveNotes = async () => {
-    if (!item) return;
+    if (!item || !userId) return;
     setSaving(true);
+    setSaveError(null);
 
     const updates: PortfolioItemUpdate = { notes };
 
-    await supabase
+    const { error } = await supabase
       .from('portfolio_items')
       .update(updates as never)
-      .eq('id', item.id);
+      .eq('id', item.id)
+      .eq('user_id', userId);
+
+    if (error) {
+      setSaveError('Failed to save notes. Please try again.');
+    }
     setSaving(false);
   };
 
@@ -128,6 +138,9 @@ export default function EvidencePage() {
       <div className="card p-5">
         <h2 className="font-display font-semibold text-surface-900 mb-3">Notes</h2>
         <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="input-field min-h-[120px] resize-y mb-3" placeholder="Add notes — supervisor name, feedback received, details about this requirement..." />
+        {saveError && (
+          <p className="text-sm text-red-600 mb-2">{saveError}</p>
+        )}
         <button onClick={handleSaveNotes} disabled={saving} className="btn-primary text-sm">
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
           Save notes

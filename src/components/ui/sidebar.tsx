@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { cn, getInitials, SPECIALTIES } from '@/lib/utils';
@@ -39,17 +40,17 @@ export function Sidebar() {
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
       {/* Logo */}
-      <a href="/dashboard" className="px-5 h-16 flex items-center gap-2.5 border-b border-surface-800/50 flex-shrink-0 hover:bg-white/5 transition-colors">
+      <Link href="/dashboard" className="px-5 h-16 flex items-center gap-2.5 border-b border-surface-800/50 flex-shrink-0 hover:bg-white/5 transition-colors">
         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center">
           <span className="text-white font-bold text-sm">M</span>
         </div>
         <span className="font-display font-bold text-[15px] text-white">MedFolio</span>
-      </a>
+      </Link>
 
       {/* Main nav */}
       <nav className="flex-1 px-3 py-4 overflow-y-auto space-y-0.5">
         {navItems.map((item) => (
-          <a
+          <Link
             key={item.href}
             href={item.href}
             onClick={() => setMobileOpen(false)}
@@ -62,7 +63,7 @@ export function Sidebar() {
           >
             <item.icon className="w-[18px] h-[18px] flex-shrink-0" />
             {item.label}
-          </a>
+          </Link>
         ))}
 
         {/* Portfolio section with sub-nav */}
@@ -88,7 +89,7 @@ export function Sidebar() {
           {portfolioOpen && (
             <div className="ml-5 pl-4 border-l border-surface-800 mt-1 space-y-0.5">
               {SPECIALTIES.map((spec) => (
-                <a
+                <Link
                   key={spec.id}
                   href={`/portfolio/${spec.id}`}
                   onClick={() => setMobileOpen(false)}
@@ -100,13 +101,13 @@ export function Sidebar() {
                   )}
                 >
                   {spec.name}
-                </a>
+                </Link>
               ))}
             </div>
           )}
         </div>
 
-        <a
+        <Link
           href="/cases/new"
           onClick={() => setMobileOpen(false)}
           className={cn(
@@ -118,9 +119,9 @@ export function Sidebar() {
         >
           <BookOpen className="w-[18px] h-[18px] flex-shrink-0" />
           Case Journal
-        </a>
+        </Link>
 
-        <a
+        <Link
           href="/specialties"
           onClick={() => setMobileOpen(false)}
           className={cn(
@@ -132,9 +133,9 @@ export function Sidebar() {
         >
           <Compass className="w-[18px] h-[18px] flex-shrink-0" />
           All Specialties
-        </a>
+        </Link>
 
-        <a
+        <Link
           href="/analytics"
           onClick={() => setMobileOpen(false)}
           className={cn(
@@ -146,13 +147,13 @@ export function Sidebar() {
         >
           <BarChart3 className="w-[18px] h-[18px] flex-shrink-0" />
           Analytics
-        </a>
+        </Link>
       </nav>
 
       {/* Bottom section */}
       <div className="px-3 py-3 border-t border-surface-800/50 space-y-0.5 flex-shrink-0">
         {bottomItems.map((item) => (
-          <a
+          <Link
             key={item.href}
             href={item.href}
             onClick={() => setMobileOpen(false)}
@@ -165,16 +166,16 @@ export function Sidebar() {
           >
             <item.icon className="w-[18px] h-[18px] flex-shrink-0" />
             {item.label}
-          </a>
+          </Link>
         ))}
-<a
-        href="/contact"
-  onClick={() => setMobileOpen(false)}
-  className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-surface-400 hover:text-white hover:bg-white/5 transition-all duration-150 w-full"
->
-  <MessageSquarePlus className="w-[18px] h-[18px] flex-shrink-0" />
-  Send feedback
-</a>
+        <Link
+          href="/contact"
+          onClick={() => setMobileOpen(false)}
+          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-surface-400 hover:text-white hover:bg-white/5 transition-all duration-150 w-full"
+        >
+          <MessageSquarePlus className="w-[18px] h-[18px] flex-shrink-0" />
+          Send feedback
+        </Link>
         
         <button
           onClick={signOut}

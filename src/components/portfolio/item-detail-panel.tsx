@@ -37,6 +37,7 @@ export function ItemDetailPanel({
     'not_started'
   );
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [uploads, setUploads] = useState<UploadRow[]>([]);
 
@@ -90,6 +91,14 @@ export function ItemDetailPanel({
   const handleSave = async () => {
     if (!item) return;
     setSaving(true);
+    setSaveError(null);
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) {
+      setSaveError('Not signed in. Please log in and try again.');
+      setSaving(false);
+      return;
+    }
 
     const updates: PortfolioItemUpdate = {
       notes,
@@ -104,9 +113,12 @@ export function ItemDetailPanel({
     const { error } = await supabase
       .from('portfolio_items')
       .update(updates as never)
-      .eq('id', item.id);
+      .eq('id', item.id)
+      .eq('user_id', session.user.id);
 
-    if (!error) {
+    if (error) {
+      setSaveError('Failed to save changes. Please try again.');
+    } else {
       onUpdate({ ...item, ...updates });
     }
 
@@ -127,7 +139,9 @@ export function ItemDetailPanel({
       .filter(Boolean)
       .join('\n');
 
-    navigator.clipboard.writeText(text);
+    navigator.clipboard.writeText(text).catch(() => {
+      // Clipboard API unavailable (non-HTTPS or denied permission) — fail silently
+    });
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -317,14 +331,19 @@ export function ItemDetailPanel({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-surface-100 flex justify-end gap-3">
-          <button onClick={onClose} className="btn-secondary">
-            Cancel
-          </button>
-          <button onClick={handleSave} disabled={saving} className="btn-primary">
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            Save changes
-          </button>
+        <div className="px-6 py-4 border-t border-surface-100">
+          {saveError && (
+            <p className="text-sm text-red-600 mb-3">{saveError}</p>
+          )}
+          <div className="flex justify-end gap-3">
+            <button onClick={onClose} className="btn-secondary">
+              Cancel
+            </button>
+            <button onClick={handleSave} disabled={saving} className="btn-primary">
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              Save changes
+            </button>
+          </div>
         </div>
       </div>
     </>
