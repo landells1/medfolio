@@ -20,7 +20,7 @@ import {
   AlertCircle,
   RefreshCw,
 } from 'lucide-react';
-import type { Json, PortfolioItemInsert, PortfolioItemRow, PortfolioItemUpdate } from '@/lib/database.types';
+import type { Json, PortfolioItemInsert, PortfolioItemRow, PortfolioItemUpdate, UploadRow } from '@/lib/database.types';
 
 type PortfolioItem = {
   id: string;
@@ -186,7 +186,9 @@ export default function PortfolioSpecialtyPage() {
 
         if (uploadsError) throw uploadsError;
 
-        (uploads || []).forEach((u) => {
+        const uploadRows: Pick<UploadRow, 'portfolio_item_id'>[] = (uploads ?? []) as Pick<UploadRow, 'portfolio_item_id'>[];
+
+        uploadRows.forEach((u) => {
           if (u.portfolio_item_id) {
             counts[u.portfolio_item_id] = (counts[u.portfolio_item_id] || 0) + 1;
           }
