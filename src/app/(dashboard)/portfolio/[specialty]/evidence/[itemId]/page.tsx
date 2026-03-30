@@ -40,7 +40,7 @@ export default function EvidencePage() {
         .single();
 
       if (error) throw error;
-      const fetchedItem: PortfolioItemRow | null = data;
+      const fetchedItem = data as unknown as PortfolioItemRow | null;
 
       if (fetchedItem) {
         setItem(fetchedItem);
