@@ -63,7 +63,7 @@ export default function CaseEditPage() {
 
       if (error) throw error;
 
-      const caseData: CaseRow | null = data;
+      const caseData = data as unknown as CaseRow | null;
 
       if (caseData) {
         setForm({
