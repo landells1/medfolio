@@ -188,7 +188,7 @@ export default function RegisterPage() {
               <label className="block text-sm font-medium text-surface-700 mb-1.5">Training stage</label>
               <select
                 value={trainingStage}
-                onChange={(e) => setTrainingStage(e.target.value)}
+                onChange={(e) => setTrainingStage(e.target.value as TrainingStage | '')}
                 className="input-field"
               >
                 <option value="">Select your stage...</option>
