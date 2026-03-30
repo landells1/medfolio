@@ -47,6 +47,7 @@ export default function PortfolioSpecialtyPage() {
   const supabase = createClient();
 
   // ALL templates and items for this specialty (every year)
+  const [userId, setUserId] = useState<string | null>(null);
   const [allTemplates, setAllTemplates] = useState<Template[]>([]);
   const [allItems, setAllItems] = useState<PortfolioItem[]>([]);
   const [uploadCounts, setUploadCounts] = useState<UploadCount>({});
@@ -101,6 +102,7 @@ export default function PortfolioSpecialtyPage() {
       }
 
       const userId = session.user.id;
+      setUserId(userId);
 
       // Fetch ALL templates and ALL user items for this specialty (every year)
       const [templatesRes, itemsRes] = await Promise.all([
@@ -211,6 +213,13 @@ export default function PortfolioSpecialtyPage() {
     }
   }, [dbName, supabase, toast]);
 
+  // Clear all pending debounce timers on unmount to prevent state updates on a dead component
+  useEffect(() => {
+    return () => {
+      Object.values(debounceTimers.current).forEach(clearTimeout);
+    };
+  }, []);
+
   // Only runs once per specialty (dbName), NOT on year change
   useEffect(() => {
     if (!dbName) return;
@@ -267,7 +276,8 @@ export default function PortfolioSpecialtyPage() {
     const { error } = await supabase
       .from('portfolio_items')
       .update(updates as never)
-      .eq('id', item.id);
+      .eq('id', item.id)
+      .eq('user_id', userId ?? '');
 
     if (error) {
       updateItems((prev) => prev.map((i) => (i.id === item.id ? originalItem : i)));
@@ -313,7 +323,8 @@ export default function PortfolioSpecialtyPage() {
       const { error } = await supabase
         .from('portfolio_items')
         .update(updates as never)
-        .eq('id', item.id);
+        .eq('id', item.id)
+        .eq('user_id', userId ?? '');
 
       if (error) {
         updateItems((prev) => prev.map((i) => (i.id === item.id ? originalItem : i)));
@@ -356,12 +367,11 @@ export default function PortfolioSpecialtyPage() {
           date_completed: new Date().toISOString().split('T')[0],
         };
 
-        return (
-        supabase
+        return supabase
           .from('portfolio_items')
           .update(updates as never)
           .eq('id', item.id)
-        );
+          .eq('user_id', userId ?? '');
       })
     );
 
@@ -393,24 +403,19 @@ export default function PortfolioSpecialtyPage() {
       )
     );
 
-    const results = await Promise.all(
-      categoryItems.map((item) => {
-        const updates: PortfolioItemUpdate = {
-          status: 'not_started',
-          current_count: 0,
-          date_completed: null,
-        };
+    const resetUpdate: PortfolioItemUpdate = {
+      status: 'not_started',
+      current_count: 0,
+      date_completed: null,
+    };
 
-        return (
-        supabase
-          .from('portfolio_items')
-          .update(updates as never)
-          .eq('id', item.id)
-        );
-      })
-    );
+    const { error: resetError } = await supabase
+      .from('portfolio_items')
+      .update(resetUpdate as never)
+      .in('id', ids)
+      .eq('user_id', userId ?? '');
 
-    if (results.some((result) => result.error)) {
+    if (resetError) {
       updateItems((prev) =>
         prev.map((i) => (ids.includes(i.id) ? categoryItems.find((item) => item.id === i.id) || i : i))
       );

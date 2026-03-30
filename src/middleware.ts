@@ -1,5 +1,10 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
+// NOTE: This is a UX-only redirect guard, not a security boundary.
+// It checks for the presence of the Supabase auth cookie but does NOT validate
+// the JWT inside it. Expired or invalid tokens still pass this check.
+// All actual auth enforcement happens per-request via supabase.auth.getSession()
+// inside each page/component.
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 

@@ -15,9 +15,14 @@ export default function DashboardLayout({
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
-    if (profile && !profile.training_stage && !profile.primary_specialty) {
+    // Show onboarding when primary_specialty is not set.
+    // training_stage defaults to 'FY1' via the DB trigger so checking it alone
+    // would never trigger; primary_specialty is always blank for new users.
+    // The key is user-scoped so one user's dismissal doesn't affect another.
+    if (profile && !profile.primary_specialty) {
       try {
-        const dismissed = localStorage?.getItem('medfolio_onboarding_dismissed');
+        const key = `medfolio_onboarding_dismissed_${profile.id}`;
+        const dismissed = localStorage?.getItem(key);
         if (!dismissed) setShowOnboarding(true);
       } catch {}
     }
@@ -26,7 +31,8 @@ export default function DashboardLayout({
   const handleOnboardingComplete = () => {
     setShowOnboarding(false);
     try {
-      localStorage?.setItem('medfolio_onboarding_dismissed', 'true');
+      const key = `medfolio_onboarding_dismissed_${profile?.id}`;
+      localStorage?.setItem(key, 'true');
     } catch {}
   };
 

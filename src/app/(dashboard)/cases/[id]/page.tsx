@@ -62,7 +62,16 @@ export default function CaseDetailPage() {
     if (!userId) return;
     if (!confirm('Are you sure you want to delete this case? This cannot be undone.')) return;
     setDeleting(true);
-    await supabase.from('cases').delete().eq('id', params.id).eq('user_id', userId);
+    const { error } = await supabase
+      .from('cases')
+      .delete()
+      .eq('id', params.id)
+      .eq('user_id', userId);
+    if (error) {
+      setDeleting(false);
+      setError('Failed to delete case. Please try again.');
+      return;
+    }
     router.push('/cases/new');
   };
 
@@ -84,7 +93,9 @@ export default function CaseDetailPage() {
       .filter(Boolean)
       .join('\n\n');
 
-    navigator.clipboard.writeText(text);
+    navigator.clipboard.writeText(text).catch(() => {
+      // Clipboard API unavailable (non-HTTPS or denied permission) — fail silently
+    });
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

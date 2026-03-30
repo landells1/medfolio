@@ -106,6 +106,12 @@ export default function CaseEditPage() {
     e.preventDefault();
     setSaving(true);
 
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) {
+      setSaving(false);
+      return;
+    }
+
     const updates: CaseUpdate = {
       title: form.title,
       date_seen: form.date_seen,
@@ -124,7 +130,8 @@ export default function CaseEditPage() {
     const { error } = await supabase
       .from('cases')
       .update(updates as never)
-      .eq('id', params.id);
+      .eq('id', params.id)
+      .eq('user_id', session.user.id);
 
     setSaving(false);
     if (!error) {
