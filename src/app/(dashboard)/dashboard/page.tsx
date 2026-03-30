@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/auth-context';
 import { createClient } from '@/lib/supabase/client';
 import { ProgressRing } from '@/components/ui/progress';
 import { SPECIALTIES, formatDate } from '@/lib/utils';
+import type { CaseRow } from '@/lib/database.types';
 import {
   Plus,
   BookOpen,
@@ -20,6 +21,7 @@ import {
 
 type YearProgress = Record<string, { completed: number; total: number }>;
 type SpecialtyProgress = Record<string, YearProgress>;
+type RecentCase = Pick<CaseRow, 'id' | 'title' | 'specialty_tags' | 'date_seen'>;
 
 export default function DashboardPage() {
   const { profile } = useAuth();
@@ -29,7 +31,7 @@ export default function DashboardPage() {
     casesThisMonth: 0,
     portfolioProgress: {} as SpecialtyProgress,
   });
-  const [recentCases, setRecentCases] = useState<any[]>([]);
+  const [recentCases, setRecentCases] = useState<RecentCase[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -54,16 +56,16 @@ export default function DashboardPage() {
       const [totalRes, monthRes, recentRes, portfolioRes, templatesRes] = await Promise.all([
         supabase
           .from('cases')
-          .select('*', { count: 'exact', head: true })
+          .select('id', { count: 'exact', head: true })
           .eq('user_id', userId),
         supabase
           .from('cases')
-          .select('*', { count: 'exact', head: true })
+          .select('id', { count: 'exact', head: true })
           .eq('user_id', userId)
           .gte('created_at', startOfMonth.toISOString()),
         supabase
           .from('cases')
-          .select('*')
+          .select('id, title, specialty_tags, date_seen')
           .eq('user_id', userId)
           .order('created_at', { ascending: false })
           .limit(5),
@@ -76,6 +78,11 @@ export default function DashboardPage() {
           .select('id, specialty, training_year'),
       ]);
 
+      if (totalRes.error) throw totalRes.error;
+      if (monthRes.error) throw monthRes.error;
+      if (recentRes.error) throw recentRes.error;
+      if (portfolioRes.error) throw portfolioRes.error;
+      if (templatesRes.error) throw templatesRes.error;
       // Build a lookup: template_id -> training_year
       const templateYearMap: Record<string, string> = {};
       for (const t of templatesRes.data || []) {
@@ -92,7 +99,7 @@ export default function DashboardPage() {
 
         const yearMap: YearProgress = {};
         for (const item of specItems) {
-          const year = templateYearMap[item.template_id];
+          const year = item.template_id ? templateYearMap[item.template_id] : undefined;
           if (!year) continue;
           if (!yearMap[year]) yearMap[year] = { completed: 0, total: 0 };
           yearMap[year].total++;

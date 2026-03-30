@@ -1,15 +1,14 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, useRef, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import type { Session, User } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/client';
-import type { User, Session } from '@supabase/supabase-js';
-
-const PROFILE_CACHE_KEY = 'medfolio_profile_cache';
+import type { ProfileRow } from '@/lib/database.types';
 
 type AuthContextType = {
   user: User | null;
   session: Session | null;
-  profile: any | null;
+  profile: ProfileRow | null;
   loading: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -27,38 +26,24 @@ const AuthContext = createContext<AuthContextType>({
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
+  const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [loading, setLoading] = useState(true);
   const initialized = useRef(false);
   const supabase = createClient();
-
-  // Read cached profile synchronously so sidebar never flickers to default
-const [profile, setProfile] = useState<any | null>(null);
-
-useEffect(() => {
-  try {
-    const cached = localStorage.getItem(PROFILE_CACHE_KEY);
-    if (cached) setProfile(JSON.parse(cached));
-  } catch {}
-}, []);
   
   const fetchProfile = async (userId: string) => {
-      supabase.from('profiles').select('id').eq('id', userId).single().then(() => {});
-
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
-      if (data) {
-        setProfile(data);
-        // Update cache with fresh data
-        try {
-          localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(data));
-        } catch {}
-      }
+
+      if (error) throw error;
+      setProfile(data ?? null);
     } catch (err) {
       console.error('[MedFolio] Profile fetch error:', err);
+      setProfile(null);
     }
   };
 
@@ -70,37 +55,64 @@ useEffect(() => {
     if (initialized.current) return;
     initialized.current = true;
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, newSession) => {
-        console.log('[MedFolio] Auth event:', event, newSession?.user?.email || 'no user');
+    const initialize = async () => {
+      try {
+        const {
+          data: { session: initialSession },
+        } = await supabase.auth.getSession();
 
-        setSession(newSession);
-        setUser(newSession?.user ?? null);
+        setSession(initialSession);
+        setUser(initialSession?.user ?? null);
 
-        if (newSession?.user) {
-          await fetchProfile(newSession.user.id);
+        if (initialSession?.user) {
+          await fetchProfile(initialSession.user.id);
         } else {
           setProfile(null);
-          try { localStorage.removeItem(PROFILE_CACHE_KEY); } catch {}
         }
-
+      } catch (err) {
+        console.error('[MedFolio] Session init error:', err);
+        setSession(null);
+        setUser(null);
+        setProfile(null);
+      } finally {
         setLoading(false);
       }
-    );
+    };
+
+    void initialize();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+      console.log('[MedFolio] Auth event:', event, newSession?.user?.email || 'no user');
+
+      setSession(newSession);
+      setUser(newSession?.user ?? null);
+
+      if (newSession?.user) {
+        await fetchProfile(newSession.user.id);
+      } else {
+        setProfile(null);
+      }
+
+      setLoading(false);
+    });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [supabase]);
 
   const signOut = async () => {
     try {
-      await supabase.auth.signOut();
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
     } catch (err) {
       console.error('[MedFolio] Sign out error:', err);
+      return;
     }
+
     setUser(null);
     setSession(null);
     setProfile(null);
-    try { localStorage.removeItem(PROFILE_CACHE_KEY); } catch {}
     window.location.href = '/';
   };
 

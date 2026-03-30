@@ -4,13 +4,31 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/components/ui/toast';
-import { SPECIALTIES } from '@/lib/utils';
 import { User, Download, Trash2, Loader2, Check, Shield, FileText } from 'lucide-react';
+import type { ProfileUpdate, TrainingStage } from '@/lib/database.types';
 
-const TRAINING_STAGES = [
-  'Medical Student', 'FY1', 'FY2', 'F3', 'CT1', 'CT2', 'IMT1', 'IMT2', 'IMT3',
-  'ST1', 'ST2', 'ST3', 'ST4', 'ST5', 'ST6', 'ST7', 'ST8',
-  'SAS', 'Consultant', 'GP_Trainee', 'Other',
+const TRAINING_STAGES: Array<{ value: TrainingStage; label: string }> = [
+  { value: 'Medical Student', label: 'Medical Student' },
+  { value: 'FY1', label: 'FY1' },
+  { value: 'FY2', label: 'FY2' },
+  { value: 'F3', label: 'F3' },
+  { value: 'CT1', label: 'CT1' },
+  { value: 'CT2', label: 'CT2' },
+  { value: 'IMT1', label: 'IMT1' },
+  { value: 'IMT2', label: 'IMT2' },
+  { value: 'IMT3', label: 'IMT3' },
+  { value: 'ST1', label: 'ST1' },
+  { value: 'ST2', label: 'ST2' },
+  { value: 'ST3', label: 'ST3' },
+  { value: 'ST4', label: 'ST4' },
+  { value: 'ST5', label: 'ST5' },
+  { value: 'ST6', label: 'ST6' },
+  { value: 'ST7', label: 'ST7' },
+  { value: 'ST8', label: 'ST8' },
+  { value: 'SAS', label: 'SAS' },
+  { value: 'Consultant', label: 'Consultant' },
+  { value: 'GP_Trainee', label: 'GP Trainee' },
+  { value: 'Other', label: 'Other' },
 ];
 
 const UK_REGIONS = [
@@ -27,12 +45,12 @@ const UK_REGIONS = [
 ];
 
 export default function SettingsPage() {
-  const { profile, refreshProfile, signOut } = useAuth();
+  const { profile, refreshProfile } = useAuth();
   const supabase = createClient();
   const { toast } = useToast();
 
   const [fullName, setFullName] = useState('');
-  const [trainingStage, setTrainingStage] = useState('');
+  const [trainingStage, setTrainingStage] = useState<TrainingStage | ''>('');
   const [primarySpecialty, setPrimarySpecialty] = useState('');
   const [region, setRegion] = useState('');
   const [saving, setSaving] = useState(false);
@@ -54,19 +72,30 @@ export default function SettingsPage() {
     e.preventDefault();
 
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) return;
+    if (!session?.user) {
+      toast('Not signed in. Please log in and try again.', 'error');
+      return;
+    }
 
     setSaving(true);
 
-    await supabase
+    const updates: ProfileUpdate = {
+      full_name: fullName.trim(),
+      training_stage: trainingStage || null,
+      primary_specialty: primarySpecialty.trim(),
+      region,
+    };
+
+    const { error } = await supabase
       .from('profiles')
-      .update({
-        full_name: fullName,
-        training_stage: trainingStage || null,
-        primary_specialty: primarySpecialty,
-        region,
-      })
+      .update(updates)
       .eq('id', session.user.id);
+
+    if (error) {
+      setSaving(false);
+      toast(error.message, 'error');
+      return;
+    }
 
     await refreshProfile();
     setSaving(false);
@@ -93,7 +122,7 @@ export default function SettingsPage() {
       exported_at: new Date().toISOString(),
       profile: {
         full_name: fullName,
-        email: profile?.email || '',
+        email: session.user.email || profile?.email || '',
         training_stage: trainingStage,
         primary_specialty: primarySpecialty,
         region,
@@ -174,17 +203,24 @@ export default function SettingsPage() {
         'Target', 'Date Completed', 'Supervisor', 'Notes',
       ];
 
-      const rows = items.map((i) => [
-        i.specialty,
-        i.category,
-        i.title,
-        i.status.replace('_', ' '),
-        String(i.current_count),
-        String(i.target_count),
-        i.date_completed || '',
-        i.metadata?.supervisor_name || '',
-        i.notes || '',
-      ]);
+      const rows = items.map((i) => {
+        const metadata: Record<string, unknown> =
+          typeof i.metadata === 'object' && i.metadata && !Array.isArray(i.metadata)
+            ? (i.metadata as Record<string, unknown>)
+            : {};
+
+        return [
+          i.specialty,
+          i.category,
+          i.title,
+          i.status.replace('_', ' '),
+          String(i.current_count),
+          String(i.target_count),
+          i.date_completed || '',
+          typeof metadata.supervisor_name === 'string' ? metadata.supervisor_name : '',
+          i.notes || '',
+        ];
+      });
 
       const csvContent = [
         headers.join(','),
@@ -212,25 +248,6 @@ export default function SettingsPage() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) { setDeleting(false); return; }
 
-    const userId = session.user.id;
-
-    const { data: uploads } = await supabase
-      .from('uploads')
-      .select('file_path')
-      .eq('user_id', userId);
-
-    if (uploads && uploads.length > 0) {
-      await supabase.storage
-        .from('evidence')
-        .remove(uploads.map((u) => u.file_path));
-    }
-
-    await supabase.from('cases').delete().eq('user_id', userId);
-    await supabase.from('portfolio_items').delete().eq('user_id', userId);
-    await supabase.from('uploads').delete().eq('user_id', userId);
-    await supabase.from('reminders').delete().eq('user_id', userId);
-    await supabase.from('profiles').delete().eq('id', userId);
-
     const { error } = await supabase.functions.invoke('delete-user', {
       method: 'POST',
     });
@@ -241,7 +258,8 @@ export default function SettingsPage() {
       return;
     }
 
-    await signOut();
+    await supabase.auth.signOut();
+    window.location.href = '/';
   };
 
   return (
@@ -267,10 +285,14 @@ export default function SettingsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-surface-700 mb-1.5">Training stage</label>
-              <select value={trainingStage} onChange={(e) => setTrainingStage(e.target.value)} className="input-field">
+              <select
+                value={trainingStage}
+                onChange={(e) => setTrainingStage(e.target.value as TrainingStage | '')}
+                className="input-field"
+              >
                 <option value="">Select...</option>
                 {TRAINING_STAGES.map((s) => (
-                  <option key={s} value={s}>{s.replace('_', ' ')}</option>
+                  <option key={s.value} value={s.value}>{s.label}</option>
                 ))}
               </select>
             </div>

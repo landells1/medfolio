@@ -9,6 +9,7 @@ export default function ContactPage() {
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
+  const [company, setCompany] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -22,7 +23,7 @@ export default function ContactPage() {
       const res = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ firstName, lastName, email, message }),
+        body: JSON.stringify({ firstName, lastName, email, message, company }),
       });
 
       if (!res.ok) throw new Error('Failed to send');
@@ -109,6 +110,19 @@ export default function ContactPage() {
                 placeholder="you@nhs.net"
                 required
               />
+            </div>
+
+            <div className="hidden" aria-hidden="true">
+              <label>
+                Company
+                <input
+                  type="text"
+                  value={company}
+                  onChange={(e) => setCompany(e.target.value)}
+                  tabIndex={-1}
+                  autoComplete="off"
+                />
+              </label>
             </div>
 
             <div>

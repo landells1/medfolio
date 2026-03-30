@@ -33,9 +33,15 @@ export default function AnalyticsPage() {
 
       // Fetch cases and all portfolio items in parallel (single query each)
       const [casesRes, portfolioRes] = await Promise.all([
-        supabase.from('cases').select('*').eq('user_id', userId),
+        supabase
+          .from('cases')
+          .select('date_seen, specialty_tags, complexity')
+          .eq('user_id', userId),
         supabase.from('portfolio_items').select('specialty, status').eq('user_id', userId),
       ]);
+
+      if (casesRes.error) throw casesRes.error;
+      if (portfolioRes.error) throw portfolioRes.error;
 
       const allCases = casesRes.data || [];
 

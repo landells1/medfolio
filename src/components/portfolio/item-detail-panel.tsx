@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/lib/auth-context';
 import { createClient } from '@/lib/supabase/client';
 import { cn, formatDate } from '@/lib/utils';
 import { FileUpload } from '@/components/ui/file-upload';
@@ -13,32 +12,14 @@ import {
   Save,
   Copy,
   Loader2,
-  FileText,
-  ChevronRight,
 } from 'lucide-react';
-
-type PortfolioItem = {
-  id: string;
-  template_id: string;
-  specialty: string;
-  category: string;
-  subcategory: string;
-  title: string;
-  description: string;
-  status: 'not_started' | 'in_progress' | 'completed';
-  current_count: number;
-  target_count: number;
-  date_completed: string | null;
-  notes: string;
-  evidence_urls: string[];
-  metadata: any;
-};
+import type { PortfolioItemRow, UploadRow } from '@/lib/database.types';
 
 interface ItemDetailPanelProps {
-  item: PortfolioItem | null;
+  item: PortfolioItemRow | null;
   isOpen: boolean;
   onClose: () => void;
-  onUpdate: (item: PortfolioItem) => void;
+  onUpdate: (item: PortfolioItemRow) => void;
 }
 
 export function ItemDetailPanel({
@@ -47,7 +28,6 @@ export function ItemDetailPanel({
   onClose,
   onUpdate,
 }: ItemDetailPanelProps) {
-  const { profile } = useAuth();
   const supabase = createClient();
 
   const [notes, setNotes] = useState('');
@@ -58,31 +38,51 @@ export function ItemDetailPanel({
   );
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [uploads, setUploads] = useState<any[]>([]);
+  const [uploads, setUploads] = useState<UploadRow[]>([]);
 
   useEffect(() => {
     if (item) {
+      const metadata: Record<string, unknown> =
+        typeof item.metadata === 'object' && item.metadata && !Array.isArray(item.metadata)
+          ? (item.metadata as Record<string, unknown>)
+          : {};
+
       setNotes(item.notes || '');
-      setSupervisorName(item.metadata?.supervisor_name || '');
+      setSupervisorName(
+        typeof metadata.supervisor_name === 'string' ? metadata.supervisor_name : ''
+      );
       setDateCompleted(item.date_completed || '');
       setStatus(item.status);
     }
   }, [item]);
 
   useEffect(() => {
-    if (item && profile) {
-      fetchUploads();
+    if (item) {
+      void fetchUploads();
     }
-  }, [item, profile]);
+  }, [item]);
 
   const fetchUploads = async () => {
-    if (!item || !profile) return;
-    const { data } = await supabase
+    if (!item) return;
+
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (!session?.user) return;
+
+    const { data, error } = await supabase
       .from('uploads')
       .select('*')
-      .eq('user_id', profile.id)
+      .eq('user_id', session.user.id)
       .eq('portfolio_item_id', item.id)
       .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('[MedFolio] Upload fetch error:', error);
+      return;
+    }
+
     setUploads(data || []);
   };
 
@@ -95,7 +95,7 @@ export function ItemDetailPanel({
       status,
       date_completed: dateCompleted || null,
       metadata: {
-        ...item.metadata,
+        ...(typeof item.metadata === 'object' && item.metadata ? item.metadata : {}),
         supervisor_name: supervisorName,
       },
     };

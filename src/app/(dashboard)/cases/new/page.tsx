@@ -1,24 +1,26 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/components/ui/toast';
 import { formatDate, cn } from '@/lib/utils';
+import type { CaseInsert, CaseRow } from '@/lib/database.types';
 import {
   Plus,
   Search,
   BookOpen,
   AlertTriangle,
-  ChevronDown,
   X,
   Loader2,
-  Filter,
   AlertCircle,
   RefreshCw,
 } from 'lucide-react';
 
+type CaseListItem = Pick<
+  CaseRow,
+  'id' | 'title' | 'diagnosis' | 'learning_points' | 'complexity' | 'specialty_tags' | 'date_seen' | 'presenting_complaint'
+>;
 const PAGE_SIZE = 20;
 
 const SPECIALTY_OPTIONS = [
@@ -40,11 +42,10 @@ const COMPLEXITY_LABELS = {
 
 export default function CaseJournalPage() {
   const supabase = createClient();
-  const router = useRouter();
   const { toast } = useToast();
 
   const [userId, setUserId] = useState<string | null>(null);
-  const [cases, setCases] = useState<any[]>([]);
+  const [cases, setCases] = useState<CaseListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -85,13 +86,14 @@ export default function CaseJournalPage() {
 
       setUserId(session.user.id);
 
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('cases')
-        .select('*')
+        .select('id, title, diagnosis, learning_points, complexity, specialty_tags, date_seen, presenting_complaint')
         .eq('user_id', session.user.id)
         .order('date_seen', { ascending: false })
         .range(0, PAGE_SIZE - 1);
 
+      if (error) throw error;
       setCases(data || []);
       setHasMore((data || []).length === PAGE_SIZE);
     } catch (err) {
@@ -106,13 +108,18 @@ export default function CaseJournalPage() {
     if (loadingMore || !userId) return;
     setLoadingMore(true);
 
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('cases')
-      .select('*')
+      .select('id, title, diagnosis, learning_points, complexity, specialty_tags, date_seen, presenting_complaint')
       .eq('user_id', userId)
       .order('date_seen', { ascending: false })
       .range(cases.length, cases.length + PAGE_SIZE - 1);
 
+    if (error) {
+      setLoadingMore(false);
+      toast('Failed to load more cases. Please try again.', 'error');
+      return;
+    }
     const newCases = data || [];
     setCases((prev) => [...prev, ...newCases]);
     setHasMore(newCases.length === PAGE_SIZE);
@@ -154,9 +161,15 @@ export default function CaseJournalPage() {
           .map((t) => t.trim())
           .filter(Boolean),
         is_anonymised_confirmed: true,
-      })
+      } satisfies CaseInsert)
       .select()
       .single();
+
+    if (error) {
+      toast(error.message, 'error');
+      setSaving(false);
+      return;
+    }
 
     if (data) {
       setCases((prev) => [data, ...prev]);

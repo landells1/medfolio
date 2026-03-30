@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { FileUpload } from '@/components/ui/file-upload';
 import { ArrowLeft, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import type { PortfolioItemRow } from '@/lib/database.types';
 
 export default function EvidencePage() {
   const params = useParams();
@@ -13,7 +14,7 @@ export default function EvidencePage() {
   const itemId = params.itemId as string;
   const supabase = createClient();
 
-  const [item, setItem] = useState<any>(null);
+  const [item, setItem] = useState<PortfolioItemRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notes, setNotes] = useState('');

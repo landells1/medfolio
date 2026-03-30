@@ -2,27 +2,44 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import type { TrainingStage } from '@/lib/database.types';
 
-const TRAINING_STAGES = [
-  'Medical Student', 'FY1', 'FY2', 'F3', 'CT1', 'CT2', 'IMT1', 'IMT2', 'IMT3',
-  'ST1', 'ST2', 'ST3', 'ST4', 'ST5', 'ST6', 'ST7', 'ST8',
-  'SAS', 'Consultant', 'GP Trainee', 'Other',
+const TRAINING_STAGES: Array<{ value: TrainingStage; label: string }> = [
+  { value: 'Medical Student', label: 'Medical Student' },
+  { value: 'FY1', label: 'FY1' },
+  { value: 'FY2', label: 'FY2' },
+  { value: 'F3', label: 'F3' },
+  { value: 'CT1', label: 'CT1' },
+  { value: 'CT2', label: 'CT2' },
+  { value: 'IMT1', label: 'IMT1' },
+  { value: 'IMT2', label: 'IMT2' },
+  { value: 'IMT3', label: 'IMT3' },
+  { value: 'ST1', label: 'ST1' },
+  { value: 'ST2', label: 'ST2' },
+  { value: 'ST3', label: 'ST3' },
+  { value: 'ST4', label: 'ST4' },
+  { value: 'ST5', label: 'ST5' },
+  { value: 'ST6', label: 'ST6' },
+  { value: 'ST7', label: 'ST7' },
+  { value: 'ST8', label: 'ST8' },
+  { value: 'SAS', label: 'SAS' },
+  { value: 'Consultant', label: 'Consultant' },
+  { value: 'GP_Trainee', label: 'GP Trainee' },
+  { value: 'Other', label: 'Other' },
 ];
 
 export default function RegisterPage() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
-  const [trainingStage, setTrainingStage] = useState('');
+  const [trainingStage, setTrainingStage] = useState<TrainingStage | ''>('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
   const supabase = createClient();
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -46,7 +63,7 @@ export default function RegisterPage() {
           full_name: fullName,
           training_stage: trainingStage || null,
         },
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: `${window.location.origin}/auth/callback/client`,
       },
     });
 
@@ -176,7 +193,7 @@ export default function RegisterPage() {
               >
                 <option value="">Select your stage...</option>
                 {TRAINING_STAGES.map((s) => (
-                  <option key={s} value={s}>{s}</option>
+                  <option key={s.value} value={s.value}>{s.label}</option>
                 ))}
               </select>
             </div>

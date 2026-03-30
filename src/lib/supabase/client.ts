@@ -1,11 +1,13 @@
 import { createBrowserClient } from '@supabase/ssr';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '@/lib/database.types';
 
-let client: ReturnType<typeof createBrowserClient> | null = null;
+let client: SupabaseClient<Database> | null = null;
 
 export function createClient() {
   if (client) return client;
 
-  client = createBrowserClient(
+  client = createBrowserClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
@@ -15,7 +17,7 @@ export function createClient() {
         persistSession: true,
         autoRefreshToken: true,
         // Disable Web Locks API — this is the root cause of all hangs
-        lock: (_name: string, _opts: any, fn: () => Promise<any>) => fn(),
+        lock: (_name: string, _opts: unknown, fn: () => Promise<unknown>) => fn(),
       },
     }
   );

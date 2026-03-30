@@ -127,6 +127,9 @@ export default function PortfolioSpecialtyPage() {
           .eq('specialty', dbName),
       ]);
 
+      if (templatesRes.error) throw templatesRes.error;
+      if (itemsRes.error) throw itemsRes.error;
+
       if (cancelled.current) return;
 
       const fetchedTemplates = templatesRes.data || [];
@@ -152,24 +155,35 @@ export default function PortfolioSpecialtyPage() {
           target_count: t.target_count,
         }));
 
-        const { data: inserted } = await supabase
+        const { data: inserted, error: insertError } = await supabase
           .from('portfolio_items')
-          .insert(newItems)
+          .upsert(newItems, { onConflict: 'user_id,template_id' })
           .select();
 
+        if (insertError) throw insertError;
+
         if (cancelled.current) return;
-        combinedItems = [...existingItems, ...(inserted || [])];
+        combinedItems = Array.from(
+          new Map(
+            [...existingItems, ...(inserted || [])].map((portfolioItem) => [
+              portfolioItem.template_id ?? portfolioItem.id,
+              portfolioItem,
+            ])
+          ).values()
+        );
       }
 
       // Fetch upload counts for all items
       const itemIds = combinedItems.map((i) => i.id);
       let counts: Record<string, number> = {};
       if (itemIds.length > 0) {
-        const { data: uploads } = await supabase
+        const { data: uploads, error: uploadsError } = await supabase
           .from('uploads')
           .select('portfolio_item_id')
           .eq('user_id', userId)
           .in('portfolio_item_id', itemIds);
+
+        if (uploadsError) throw uploadsError;
 
         (uploads || []).forEach((u) => {
           if (u.portfolio_item_id) {
@@ -228,6 +242,7 @@ export default function PortfolioSpecialtyPage() {
     const newStatus = isCurrentlyComplete ? 'not_started' as const : 'completed' as const;
     const newCount = isCurrentlyComplete ? 0 : item.target_count;
     const newDate = isCurrentlyComplete ? null : new Date().toISOString().split('T')[0];
+    const originalItem = { ...item };
 
     updateItems((prev) =>
       prev.map((i) =>
@@ -239,7 +254,7 @@ export default function PortfolioSpecialtyPage() {
 
     setSavingItems((prev) => new Set(prev).add(item.id));
 
-    await supabase
+    const { error } = await supabase
       .from('portfolio_items')
       .update({
         status: newStatus,
@@ -247,6 +262,11 @@ export default function PortfolioSpecialtyPage() {
         date_completed: newDate,
       })
       .eq('id', item.id);
+
+    if (error) {
+      updateItems((prev) => prev.map((i) => (i.id === item.id ? originalItem : i)));
+      toast('Failed to save item status. Please try again.', 'error');
+    }
 
     setSavingItems((prev) => {
       const next = new Set(prev);
@@ -261,12 +281,14 @@ export default function PortfolioSpecialtyPage() {
       clamped >= item.target_count ? 'completed' as const
       : clamped > 0 ? 'in_progress' as const
       : 'not_started' as const;
+    const newDate = newStatus === 'completed' ? new Date().toISOString().split('T')[0] : null;
+    const originalItem = { ...item };
 
     // Immediate UI update
     updateItems((prev) =>
       prev.map((i) =>
         i.id === item.id
-          ? { ...i, current_count: clamped, status: newStatus }
+          ? { ...i, current_count: clamped, status: newStatus, date_completed: newDate }
           : i
       )
     );
@@ -276,14 +298,20 @@ export default function PortfolioSpecialtyPage() {
       clearTimeout(debounceTimers.current[item.id]);
     }
     debounceTimers.current[item.id] = setTimeout(async () => {
-      await supabase
+      const { error } = await supabase
         .from('portfolio_items')
         .update({
           current_count: clamped,
           status: newStatus,
-          date_completed: newStatus === 'completed' ? new Date().toISOString().split('T')[0] : null,
+          date_completed: newDate,
         })
         .eq('id', item.id);
+
+      if (error) {
+        updateItems((prev) => prev.map((i) => (i.id === item.id ? originalItem : i)));
+        toast('Failed to save progress count. Please try again.', 'error');
+      }
+
       delete debounceTimers.current[item.id];
     }, 500);
   };
@@ -312,7 +340,7 @@ export default function PortfolioSpecialtyPage() {
       )
     );
 
-    await Promise.all(
+    const results = await Promise.all(
       categoryItems.map((item) =>
         supabase
           .from('portfolio_items')
@@ -324,6 +352,14 @@ export default function PortfolioSpecialtyPage() {
           .eq('id', item.id)
       )
     );
+
+    if (results.some((result) => result.error)) {
+      updateItems((prev) =>
+        prev.map((i) => (ids.includes(i.id) ? categoryItems.find((item) => item.id === i.id) || i : i))
+      );
+      toast('Failed to mark every item complete. Please try again.', 'error');
+      return;
+    }
 
     toast(`${categoryItems.length} items marked complete`);
   };
@@ -345,7 +381,7 @@ export default function PortfolioSpecialtyPage() {
       )
     );
 
-    await Promise.all(
+    const results = await Promise.all(
       categoryItems.map((item) =>
         supabase
           .from('portfolio_items')
@@ -353,6 +389,14 @@ export default function PortfolioSpecialtyPage() {
           .eq('id', item.id)
       )
     );
+
+    if (results.some((result) => result.error)) {
+      updateItems((prev) =>
+        prev.map((i) => (ids.includes(i.id) ? categoryItems.find((item) => item.id === i.id) || i : i))
+      );
+      toast(`Failed to reset ${category}. Please try again.`, 'error');
+      return;
+    }
 
     toast(`${category} reset to not started`, 'info');
   };

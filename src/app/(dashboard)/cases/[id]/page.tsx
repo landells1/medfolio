@@ -8,6 +8,7 @@ import { useAuth } from '@/lib/auth-context';
 import { formatDate, cn } from '@/lib/utils';
 import { ArrowLeft, Edit2, Trash2, Copy, Check, Loader2, FileDown, AlertCircle, RefreshCw } from 'lucide-react';
 import { exportSingleCasePDF } from '@/lib/export-pdf';
+import type { CaseRow } from '@/lib/database.types';
 
 export default function CaseDetailPage() {
   const params = useParams();
@@ -15,7 +16,7 @@ export default function CaseDetailPage() {
   const { profile } = useAuth();
   const supabase = createClient();
   const [userId, setUserId] = useState<string | null>(null);
-  const [caseData, setCaseData] = useState<any>(null);
+  const [caseData, setCaseData] = useState<CaseRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
