@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { FileUpload } from '@/components/ui/file-upload';
 import { ArrowLeft, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
-import type { PortfolioItemRow } from '@/lib/database.types';
+import type { PortfolioItemRow, PortfolioItemUpdate } from '@/lib/database.types';
 
 export default function EvidencePage() {
   const params = useParams();
@@ -61,9 +61,12 @@ export default function EvidencePage() {
   const handleSaveNotes = async () => {
     if (!item) return;
     setSaving(true);
+
+    const updates: PortfolioItemUpdate = { notes };
+
     await supabase
       .from('portfolio_items')
-      .update({ notes })
+      .update(updates)
       .eq('id', item.id);
     setSaving(false);
   };

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
+import type { ProfileUpdate, TrainingStage } from '@/lib/database.types';
 import {
   Stethoscope,
   ClipboardCheck,
@@ -14,7 +15,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 
-const TRAINING_STAGES = [
+const TRAINING_STAGES: Array<{ value: TrainingStage; label: string }> = [
   { value: 'FY1', label: 'FY1' },
   { value: 'FY2', label: 'FY2' },
   { value: 'F3', label: 'F3 / Career Break' },
@@ -53,7 +54,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
   const supabase = createClient();
 
   const [step, setStep] = useState(0);
-  const [trainingStage, setTrainingStage] = useState(profile?.training_stage || '');
+  const [trainingStage, setTrainingStage] = useState<TrainingStage | ''>(profile?.training_stage || '');
   const [primarySpecialty, setPrimarySpecialty] = useState(profile?.primary_specialty || '');
   const [region, setRegion] = useState(profile?.region || '');
   const [selectedSpecialties, setSelectedSpecialties] = useState<string[]>([]);
@@ -65,15 +66,17 @@ export function Onboarding({ onComplete }: OnboardingProps) {
     if (!profile) return;
     setSaving(true);
 
+    const updates: ProfileUpdate = {
+      training_stage: trainingStage || null,
+      primary_specialty: primarySpecialty,
+      region,
+      secondary_specialties: selectedSpecialties,
+      updated_at: new Date().toISOString(),
+    };
+
     await supabase
       .from('profiles')
-      .update({
-        training_stage: trainingStage || null,
-        primary_specialty: primarySpecialty,
-        region,
-        secondary_specialties: selectedSpecialties,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updates)
       .eq('id', profile.id);
 
     await refreshProfile();

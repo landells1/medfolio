@@ -141,27 +141,29 @@ export default function CaseJournalPage() {
     if (!userId) return;
     setSaving(true);
 
+    const newCase: CaseInsert = {
+      user_id: userId,
+      title: form.title,
+      date_seen: form.date_seen,
+      specialty_tags: form.specialty_tags,
+      presenting_complaint: form.presenting_complaint,
+      key_findings: form.key_findings,
+      diagnosis: form.diagnosis,
+      management: form.management,
+      outcome: form.outcome,
+      learning_points: form.learning_points,
+      reflection: form.reflection,
+      complexity: form.complexity,
+      custom_tags: form.custom_tags
+        .split(',')
+        .map((t) => t.trim())
+        .filter(Boolean),
+      is_anonymised_confirmed: true,
+    };
+
     const { data, error } = await supabase
       .from('cases')
-      .insert({
-        user_id: userId,
-        title: form.title,
-        date_seen: form.date_seen,
-        specialty_tags: form.specialty_tags,
-        presenting_complaint: form.presenting_complaint,
-        key_findings: form.key_findings,
-        diagnosis: form.diagnosis,
-        management: form.management,
-        outcome: form.outcome,
-        learning_points: form.learning_points,
-        reflection: form.reflection,
-        complexity: form.complexity,
-        custom_tags: form.custom_tags
-          .split(',')
-          .map((t) => t.trim())
-          .filter(Boolean),
-        is_anonymised_confirmed: true,
-      } satisfies CaseInsert)
+      .insert(newCase)
       .select()
       .single();
 

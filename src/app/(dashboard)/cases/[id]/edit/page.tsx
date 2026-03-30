@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { FileUpload } from '@/components/ui/file-upload';
 import { ArrowLeft, Save, Loader2, AlertTriangle, AlertCircle, RefreshCw } from 'lucide-react';
-import type { CaseComplexity, CaseRow } from '@/lib/database.types';
+import type { CaseComplexity, CaseRow, CaseUpdate } from '@/lib/database.types';
 
 const SPECIALTY_OPTIONS = [
   'General Medicine', 'General Surgery', 'Cardiology', 'Respiratory',
@@ -106,22 +106,24 @@ export default function CaseEditPage() {
     e.preventDefault();
     setSaving(true);
 
+    const updates: CaseUpdate = {
+      title: form.title,
+      date_seen: form.date_seen,
+      specialty_tags: form.specialty_tags,
+      presenting_complaint: form.presenting_complaint,
+      key_findings: form.key_findings,
+      diagnosis: form.diagnosis,
+      management: form.management,
+      outcome: form.outcome,
+      learning_points: form.learning_points,
+      reflection: form.reflection,
+      complexity: form.complexity,
+      custom_tags: form.custom_tags.split(',').map((t) => t.trim()).filter(Boolean),
+    };
+
     const { error } = await supabase
       .from('cases')
-      .update({
-        title: form.title,
-        date_seen: form.date_seen,
-        specialty_tags: form.specialty_tags,
-        presenting_complaint: form.presenting_complaint,
-        key_findings: form.key_findings,
-        diagnosis: form.diagnosis,
-        management: form.management,
-        outcome: form.outcome,
-        learning_points: form.learning_points,
-        reflection: form.reflection,
-        complexity: form.complexity,
-        custom_tags: form.custom_tags.split(',').map((t) => t.trim()).filter(Boolean),
-      })
+      .update(updates)
       .eq('id', params.id);
 
     setSaving(false);

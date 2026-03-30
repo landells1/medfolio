@@ -304,6 +304,7 @@ export type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 export type ProfileUpdate = Database['public']['Tables']['profiles']['Update'];
 export type CaseRow = Database['public']['Tables']['cases']['Row'];
 export type CaseInsert = Database['public']['Tables']['cases']['Insert'];
+export type CaseUpdate = Database['public']['Tables']['cases']['Update'];
 export type PortfolioItemRow = Database['public']['Tables']['portfolio_items']['Row'];
 export type PortfolioItemInsert = Database['public']['Tables']['portfolio_items']['Insert'];
 export type PortfolioItemUpdate = Database['public']['Tables']['portfolio_items']['Update'];

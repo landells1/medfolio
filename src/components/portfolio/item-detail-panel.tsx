@@ -13,7 +13,7 @@ import {
   Copy,
   Loader2,
 } from 'lucide-react';
-import type { PortfolioItemRow, UploadRow } from '@/lib/database.types';
+import type { PortfolioItemRow, PortfolioItemUpdate, UploadRow } from '@/lib/database.types';
 
 interface ItemDetailPanelProps {
   item: PortfolioItemRow | null;
@@ -90,7 +90,7 @@ export function ItemDetailPanel({
     if (!item) return;
     setSaving(true);
 
-    const updates = {
+    const updates: PortfolioItemUpdate = {
       notes,
       status,
       date_completed: dateCompleted || null,

@@ -20,7 +20,7 @@ import {
   AlertCircle,
   RefreshCw,
 } from 'lucide-react';
-import type { Json, PortfolioItemRow } from '@/lib/database.types';
+import type { Json, PortfolioItemInsert, PortfolioItemRow, PortfolioItemUpdate } from '@/lib/database.types';
 
 type PortfolioItem = {
   id: string;
@@ -143,7 +143,7 @@ export default function PortfolioSpecialtyPage() {
       let combinedItems = existingItems;
 
       if (missing.length > 0) {
-        const newItems = missing.map((t) => ({
+        const newItems: PortfolioItemInsert[] = missing.map((t) => ({
           user_id: userId,
           template_id: t.id,
           specialty: dbName,
@@ -255,13 +255,15 @@ export default function PortfolioSpecialtyPage() {
 
     setSavingItems((prev) => new Set(prev).add(item.id));
 
+    const updates: PortfolioItemUpdate = {
+      status: newStatus,
+      current_count: newCount,
+      date_completed: newDate,
+    };
+
     const { error } = await supabase
       .from('portfolio_items')
-      .update({
-        status: newStatus,
-        current_count: newCount,
-        date_completed: newDate,
-      })
+      .update(updates)
       .eq('id', item.id);
 
     if (error) {
@@ -299,13 +301,15 @@ export default function PortfolioSpecialtyPage() {
       clearTimeout(debounceTimers.current[item.id]);
     }
     debounceTimers.current[item.id] = setTimeout(async () => {
+      const updates: PortfolioItemUpdate = {
+        current_count: clamped,
+        status: newStatus,
+        date_completed: newDate,
+      };
+
       const { error } = await supabase
         .from('portfolio_items')
-        .update({
-          current_count: clamped,
-          status: newStatus,
-          date_completed: newDate,
-        })
+        .update(updates)
         .eq('id', item.id);
 
       if (error) {
@@ -342,16 +346,20 @@ export default function PortfolioSpecialtyPage() {
     );
 
     const results = await Promise.all(
-      categoryItems.map((item) =>
+      categoryItems.map((item) => {
+        const updates: PortfolioItemUpdate = {
+          status: 'completed',
+          current_count: item.target_count,
+          date_completed: new Date().toISOString().split('T')[0],
+        };
+
+        return (
         supabase
           .from('portfolio_items')
-          .update({
-            status: 'completed',
-            current_count: item.target_count,
-            date_completed: new Date().toISOString().split('T')[0],
-          })
+          .update(updates)
           .eq('id', item.id)
-      )
+        );
+      })
     );
 
     if (results.some((result) => result.error)) {
@@ -383,12 +391,20 @@ export default function PortfolioSpecialtyPage() {
     );
 
     const results = await Promise.all(
-      categoryItems.map((item) =>
+      categoryItems.map((item) => {
+        const updates: PortfolioItemUpdate = {
+          status: 'not_started',
+          current_count: 0,
+          date_completed: null,
+        };
+
+        return (
         supabase
           .from('portfolio_items')
-          .update({ status: 'not_started', current_count: 0, date_completed: null })
+          .update(updates)
           .eq('id', item.id)
-      )
+        );
+      })
     );
 
     if (results.some((result) => result.error)) {
