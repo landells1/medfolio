@@ -89,6 +89,7 @@ export default function PortfolioSpecialtyPage() {
     setLoading(true);
     setError(null);
     setInitialising(false);
+    let baseDataLoaded = false;
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -126,6 +127,7 @@ export default function PortfolioSpecialtyPage() {
       setAllTemplates(fetchedTemplates);
       setAllItems(existingItems);
       setLoading(false);
+      baseDataLoaded = true;
 
       // Auto-initialise missing items for ALL years at once
       const existingTemplateIds = new Set(existingItems.map((i) => i.template_id));
@@ -195,7 +197,7 @@ export default function PortfolioSpecialtyPage() {
     } catch (err: unknown) {
       console.error('[MedFolio] Portfolio load error:', err);
       if (!cancelled.current) {
-        if (loading) {
+        if (!baseDataLoaded) {
           setError('Failed to load portfolio. Please try again.');
         } else {
           toast('Checklist initialisation is taking longer than expected. Refresh in a moment if items are missing.', 'info');
@@ -207,7 +209,7 @@ export default function PortfolioSpecialtyPage() {
         setInitialising(false);
       }
     }
-  }, [dbName, loading, supabase, toast]);
+  }, [dbName, supabase, toast]);
 
   // Only runs once per specialty (dbName), NOT on year change
   useEffect(() => {
