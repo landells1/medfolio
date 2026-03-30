@@ -72,7 +72,7 @@ export default function PortfolioSpecialtyPage() {
   const items = useMemo(
     () => {
       const yearTemplateIds = new Set(templates.map((t) => t.id));
-      return allItems.filter((i) => yearTemplateIds.has(i.template_id));
+      return allItems.filter((i) => (i.template_id ? yearTemplateIds.has(i.template_id) : false));
     },
     [allItems, templates]
   );

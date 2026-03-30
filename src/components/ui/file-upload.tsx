@@ -28,14 +28,7 @@ const ALLOWED_TYPES = [
 const ALLOWED_EXTENSIONS = ['.pdf', '.png', '.jpg', '.jpeg', '.doc', '.docx'];
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
-type UploadedFile = {
-  id: string;
-  file_name: string;
-  file_path: string;
-  file_size: number;
-  mime_type: string;
-  created_at: string;
-};
+type UploadedFile = UploadRow;
 
 type UploadInsertRecord = Pick<
   UploadRow,
