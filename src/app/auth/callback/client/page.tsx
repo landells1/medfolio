@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AlertCircle, Loader2, Lock } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
@@ -15,7 +15,7 @@ function getSafeNext(next: string | null) {
   return next;
 }
 
-export default function AuthCallbackClientPage() {
+function AuthCallbackClientContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = createClient();
@@ -187,5 +187,22 @@ export default function AuthCallbackClientPage() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function AuthCallbackClientPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center p-6">
+          <div className="flex flex-col items-center gap-3 text-center">
+            <Loader2 className="w-6 h-6 animate-spin text-brand-500" />
+            <p className="text-sm text-surface-500">Completing sign-in...</p>
+          </div>
+        </div>
+      }
+    >
+      <AuthCallbackClientContent />
+    </Suspense>
   );
 }
