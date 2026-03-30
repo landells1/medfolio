@@ -123,7 +123,7 @@ export default function CaseEditPage() {
 
     const { error } = await supabase
       .from('cases')
-      .update(updates)
+      .update(updates as never)
       .eq('id', params.id);
 
     setSaving(false);

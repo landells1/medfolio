@@ -163,7 +163,7 @@ export default function CaseJournalPage() {
 
     const { data, error } = await supabase
       .from('cases')
-      .insert(newCase)
+      .insert(newCase as never)
       .select()
       .single();
 

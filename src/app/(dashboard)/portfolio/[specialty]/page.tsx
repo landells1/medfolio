@@ -158,7 +158,7 @@ export default function PortfolioSpecialtyPage() {
 
         const { data: inserted, error: insertError } = await supabase
           .from('portfolio_items')
-          .upsert(newItems, { onConflict: 'user_id,template_id' })
+          .upsert(newItems as never, { onConflict: 'user_id,template_id' })
           .select();
 
         if (insertError) throw insertError;
@@ -263,7 +263,7 @@ export default function PortfolioSpecialtyPage() {
 
     const { error } = await supabase
       .from('portfolio_items')
-      .update(updates)
+      .update(updates as never)
       .eq('id', item.id);
 
     if (error) {
@@ -309,7 +309,7 @@ export default function PortfolioSpecialtyPage() {
 
       const { error } = await supabase
         .from('portfolio_items')
-        .update(updates)
+        .update(updates as never)
         .eq('id', item.id);
 
       if (error) {
@@ -356,7 +356,7 @@ export default function PortfolioSpecialtyPage() {
         return (
         supabase
           .from('portfolio_items')
-          .update(updates)
+          .update(updates as never)
           .eq('id', item.id)
         );
       })
@@ -401,7 +401,7 @@ export default function PortfolioSpecialtyPage() {
         return (
         supabase
           .from('portfolio_items')
-          .update(updates)
+          .update(updates as never)
           .eq('id', item.id)
         );
       })

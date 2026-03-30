@@ -88,7 +88,7 @@ export default function SettingsPage() {
 
     const { error } = await supabase
       .from('profiles')
-      .update(updates)
+      .update(updates as never)
       .eq('id', session.user.id);
 
     if (error) {

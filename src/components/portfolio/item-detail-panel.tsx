@@ -102,7 +102,7 @@ export function ItemDetailPanel({
 
     const { error } = await supabase
       .from('portfolio_items')
-      .update(updates)
+      .update(updates as never)
       .eq('id', item.id);
 
     if (!error) {

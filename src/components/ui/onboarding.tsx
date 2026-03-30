@@ -76,7 +76,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
 
     await supabase
       .from('profiles')
-      .update(updates)
+      .update(updates as never)
       .eq('id', profile.id);
 
     await refreshProfile();

@@ -66,7 +66,7 @@ export default function EvidencePage() {
 
     await supabase
       .from('portfolio_items')
-      .update(updates)
+      .update(updates as never)
       .eq('id', item.id);
     setSaving(false);
   };

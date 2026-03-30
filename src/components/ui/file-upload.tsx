@@ -144,7 +144,7 @@ export function FileUpload({
 
       const { error: dbError } = await supabase
         .from('uploads')
-        .insert(uploadRecord);
+        .insert(uploadRecord as never);
 
       if (dbError) throw dbError;
 
