@@ -4,6 +4,10 @@ import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { SPECIALTIES } from '@/lib/utils';
 import { BarChart3, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import type { CaseRow, PortfolioItemRow } from '@/lib/database.types';
+
+type AnalyticsCase = Pick<CaseRow, 'date_seen' | 'specialty_tags' | 'complexity'>;
+type AnalyticsPortfolioItem = Pick<PortfolioItemRow, 'specialty' | 'status'>;
 
 export default function AnalyticsPage() {
   const supabase = createClient();
@@ -43,7 +47,7 @@ export default function AnalyticsPage() {
       if (casesRes.error) throw casesRes.error;
       if (portfolioRes.error) throw portfolioRes.error;
 
-      const allCases = casesRes.data || [];
+      const allCases: AnalyticsCase[] = casesRes.data ?? [];
 
       // Cases by specialty tag
       const specMap: Record<string, number> = {};
@@ -81,8 +85,8 @@ export default function AnalyticsPage() {
       const casesByMonth = Object.entries(monthMap).map(([month, count]) => ({ month, count }));
 
       // Portfolio completion from single query result
-      const allPortfolioItems = portfolioRes.data || [];
-      const portfolioCompletion = [];
+      const allPortfolioItems: AnalyticsPortfolioItem[] = portfolioRes.data ?? [];
+      const portfolioCompletion: { specialty: string; completed: number; total: number }[] = [];
       for (const spec of SPECIALTIES) {
         const specItems = allPortfolioItems.filter((i) => i.specialty === spec.name);
         if (specItems.length > 0) {
