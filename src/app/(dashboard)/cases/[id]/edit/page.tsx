@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { FileUpload } from '@/components/ui/file-upload';
 import { ArrowLeft, Save, Loader2, AlertTriangle, AlertCircle, RefreshCw } from 'lucide-react';
+import type { CaseRow } from '@/lib/database.types';
 
 const SPECIALTY_OPTIONS = [
   'General Medicine', 'General Surgery', 'Cardiology', 'Respiratory',
@@ -53,27 +54,31 @@ export default function CaseEditPage() {
         return;
       }
 
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('cases')
         .select('*')
         .eq('id', params.id)
         .eq('user_id', session.user.id)
         .single();
 
-      if (data) {
+      if (error) throw error;
+
+      const caseData: CaseRow | null = data;
+
+      if (caseData) {
         setForm({
-          title: data.title || '',
-          date_seen: data.date_seen || '',
-          specialty_tags: data.specialty_tags || [],
-          presenting_complaint: data.presenting_complaint || '',
-          key_findings: data.key_findings || '',
-          diagnosis: data.diagnosis || '',
-          management: data.management || '',
-          outcome: data.outcome || '',
-          learning_points: data.learning_points || '',
-          reflection: data.reflection || '',
-          complexity: data.complexity || 'routine',
-          custom_tags: (data.custom_tags || []).join(', '),
+          title: caseData.title || '',
+          date_seen: caseData.date_seen || '',
+          specialty_tags: caseData.specialty_tags || [],
+          presenting_complaint: caseData.presenting_complaint || '',
+          key_findings: caseData.key_findings || '',
+          diagnosis: caseData.diagnosis || '',
+          management: caseData.management || '',
+          outcome: caseData.outcome || '',
+          learning_points: caseData.learning_points || '',
+          reflection: caseData.reflection || '',
+          complexity: caseData.complexity || 'routine',
+          custom_tags: (caseData.custom_tags || []).join(', '),
         });
       }
     } catch (err) {
