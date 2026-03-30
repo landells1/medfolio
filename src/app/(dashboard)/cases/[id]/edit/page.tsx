@@ -202,7 +202,7 @@ export default function CaseEditPage() {
           <div>
             <label className="block text-sm font-medium text-surface-700 mb-1.5">Complexity</label>
             <div className="flex gap-2">
-              {['routine', 'moderate', 'complex', 'rare'].map((level) => (
+              {(['routine', 'moderate', 'complex', 'rare'] as const).map((level) => (
                 <button key={level} type="button" onClick={() => setForm((p) => ({ ...p, complexity: level }))} className={cn('px-3 py-1.5 rounded-lg text-xs font-medium transition-all border capitalize', form.complexity === level ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-surface-200 text-surface-500 hover:bg-surface-50')}>
                   {level}
                 </button>
