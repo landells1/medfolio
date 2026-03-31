@@ -7,7 +7,6 @@ import {
   LayoutDashboard,
   ClipboardCheck,
   BookOpen,
-  BarChart3,
   Settings,
   LogOut,
   ChevronDown,
@@ -134,19 +133,6 @@ export function Sidebar() {
           All Specialties
         </a>
 
-        <a
-          href="/analytics"
-          onClick={() => setMobileOpen(false)}
-          className={cn(
-            'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150',
-            isActive('/analytics')
-              ? 'bg-white/10 text-white'
-              : 'text-surface-400 hover:text-white hover:bg-white/5'
-          )}
-        >
-          <BarChart3 className="w-[18px] h-[18px] flex-shrink-0" />
-          Analytics
-        </a>
       </nav>
 
       {/* Bottom section */}

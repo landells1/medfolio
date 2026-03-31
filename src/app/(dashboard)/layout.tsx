@@ -15,9 +15,17 @@ export default function DashboardLayout({
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
-    if (profile && !profile.training_stage && !profile.primary_specialty) {
+    // Show onboarding for users who have not set their primary specialty.
+    // primary_specialty defaults to '' in the DB so this correctly catches
+    // brand-new users. The key is scoped per user so dismissing on one
+    // account doesn't suppress it for another account on the same device.
+    // Once the user completes onboarding their primary_specialty is saved,
+    // so the condition becomes false and the modal never shows again —
+    // even if localStorage is cleared.
+    if (profile && !profile.primary_specialty) {
       try {
-        const dismissed = localStorage?.getItem('medfolio_onboarding_dismissed');
+        const key = `medfolio_onboarding_dismissed_${profile.id}`;
+        const dismissed = localStorage?.getItem(key);
         if (!dismissed) setShowOnboarding(true);
       } catch {}
     }
@@ -26,7 +34,9 @@ export default function DashboardLayout({
   const handleOnboardingComplete = () => {
     setShowOnboarding(false);
     try {
-      localStorage?.setItem('medfolio_onboarding_dismissed', 'true');
+      if (profile?.id) {
+        localStorage?.setItem(`medfolio_onboarding_dismissed_${profile.id}`, 'true');
+      }
     } catch {}
   };
 
