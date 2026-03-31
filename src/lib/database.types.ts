@@ -272,7 +272,7 @@ export interface Database {
           created_at?: string;
         };
       };
-      reminders: {
+            reminders: {
         Row: {
           id: string;
           user_id: string;
@@ -302,8 +302,17 @@ export interface Database {
         };
       };
     };
+    Functions: {
+      get_user_storage_used: {
+        Args: {
+          p_user_id: string;
+        };
+        Returns: number;
+      };
+    };
   };
 }
+
 
 export type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 export type ProfileUpdate = Database['public']['Tables']['profiles']['Update'];
