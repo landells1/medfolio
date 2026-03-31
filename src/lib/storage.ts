@@ -13,7 +13,8 @@ export const STORAGE_LIMIT_LABEL = '250 MB';
  */
 export async function getUserStorageUsed(userId: string): Promise<number> {
   const supabase = createClient();
-  const { data, error } = await supabase.rpc('get_user_storage_used', {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase as any).rpc('get_user_storage_used', {
     p_user_id: userId,
   });
   if (error) throw error;
