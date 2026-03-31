@@ -300,6 +300,9 @@ export interface Database {
         };
       };
     };
+    Views: {
+      [_ in never]: never;
+    };
     Functions: {
       get_user_storage_used: {
         Args: {
