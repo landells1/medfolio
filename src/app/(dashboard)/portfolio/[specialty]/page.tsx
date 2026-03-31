@@ -216,7 +216,21 @@ export default function PortfolioSpecialtyPage() {
     };
   }, []);
 
-  // Wait for auth context to settle before fetching — avoids racing getSession()
+  // ⚠️ INFINITE LOADING BUG WARNING — do not change this pattern.
+  //
+  // Pages must wait for the auth context to settle (authLoading === false)
+  // before making any Supabase calls. Do NOT call supabase.auth.getSession()
+  // directly inside this component — it races the auth context's own
+  // getSession() call on startup and can hang indefinitely, leaving the page
+  // stuck on a spinner that only a manual refresh can clear.
+  //
+  // Safe pattern: read user.id from useAuth(), gate all fetches on
+  // authLoading === false, pass userId in as a parameter.
+  //
+  // Also: do NOT add `loading` or any other transient UI state to the
+  // useCallback deps array for loadData. If loadData depends on `loading`
+  // and also calls setLoading(), it will recreate itself on every render
+  // and trigger an infinite refetch loop.
   const authUserId = user?.id;
 
   // Only runs once per specialty (dbName), NOT on year change
@@ -672,6 +686,7 @@ export default function PortfolioSpecialtyPage() {
 
                             <Link
                               href={`/portfolio/${specialtyId}/evidence/${item.id}`}
+                              prefetch={false}
                               className={cn(
                                 'flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-colors flex-shrink-0',
                                 fileCount > 0

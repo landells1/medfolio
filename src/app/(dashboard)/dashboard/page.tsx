@@ -127,7 +127,16 @@ export default function DashboardPage() {
     }
   }, [supabase]);
 
-  // Wait for auth context to settle before fetching — avoids racing getSession()
+  // ⚠️ INFINITE LOADING BUG WARNING — do not change this pattern.
+  //
+  // Pages must wait for the auth context to settle (authLoading === false)
+  // before making any Supabase calls. Do NOT call supabase.auth.getSession()
+  // directly inside this component — it races the auth context's own
+  // getSession() call on startup and can hang indefinitely, leaving the page
+  // stuck on a spinner that only a manual refresh can clear.
+  //
+  // Safe pattern: read user.id from useAuth(), gate all fetches on
+  // authLoading === false, pass userId in as a parameter.
   const userId = user?.id;
   useEffect(() => {
     if (authLoading || !userId) return;
