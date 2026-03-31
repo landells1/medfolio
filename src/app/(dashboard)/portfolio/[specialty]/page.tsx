@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import { useAuth } from '@/lib/auth-context';
 import { createClient } from '@/lib/supabase/client';
 import { getSpecialtyById, getSpecialtyDbName, cn } from '@/lib/utils';
 import { ProgressBar, ProgressRing } from '@/components/ui/progress';
@@ -44,6 +45,7 @@ export default function PortfolioSpecialtyPage() {
   const specialty = getSpecialtyById(specialtyId);
   const dbName = getSpecialtyDbName(specialtyId);
 
+  const { user, loading: authLoading } = useAuth();
   const supabase = createClient();
 
   // ALL templates and items for this specialty (every year)
@@ -86,22 +88,16 @@ export default function PortfolioSpecialtyPage() {
   }, [templates]);
 
   // --- SINGLE FETCH: loads everything for this specialty once ---
-  const loadData = useCallback(async (cancelled: { current: boolean }) => {
+  const loadData = useCallback(async (uid: string, cancelled: { current: boolean }) => {
     setLoading(true);
     setError(null);
     setInitialising(false);
     let baseDataLoaded = false;
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      if (cancelled.current) return;
 
-      if (!session?.user || cancelled.current) {
-        if (!session?.user) setError('Not signed in. Please log in and try again.');
-        setLoading(false);
-        return;
-      }
-
-      const userId = session.user.id;
+      const userId = uid;
       setUserId(userId);
 
       // Fetch ALL templates and ALL user items for this specialty (every year)
@@ -220,15 +216,18 @@ export default function PortfolioSpecialtyPage() {
     };
   }, []);
 
+  // Wait for auth context to settle before fetching — avoids racing getSession()
+  const authUserId = user?.id;
+
   // Only runs once per specialty (dbName), NOT on year change
   useEffect(() => {
-    if (!dbName) return;
+    if (!dbName || authLoading || !authUserId) return;
 
     const cancelled = { current: false };
-    loadData(cancelled);
+    loadData(authUserId, cancelled);
 
     return () => { cancelled.current = true; };
-  }, [dbName, loadData]);
+  }, [dbName, authLoading, authUserId, loadData]);
 
   const getItemForTemplate = (templateId: string) => {
     return items.find((i) => i.template_id === templateId);
@@ -427,8 +426,9 @@ export default function PortfolioSpecialtyPage() {
   };
 
   const handleRetry = () => {
+    if (!authUserId) return;
     const cancelled = { current: false };
-    loadData(cancelled);
+    loadData(authUserId, cancelled);
   };
 
   // Group templates by category

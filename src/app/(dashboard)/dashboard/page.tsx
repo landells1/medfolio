@@ -26,7 +26,7 @@ type TemplateSummary = { id: string; specialty: string; training_year: string };
 type PortfolioSummary = Pick<PortfolioItemRow, 'specialty' | 'status' | 'template_id'>;
 
 export default function DashboardPage() {
-  const { profile } = useAuth();
+  const { profile, user, loading: authLoading } = useAuth();
   const supabase = createClient();
   const [stats, setStats] = useState({
     totalCases: 0,
@@ -37,20 +37,12 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (userId: string) => {
     setLoading(true);
     setError(null);
     let baseDataLoaded = false;
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) {
-        setError('Not signed in. Please log in and try again.');
-        setLoading(false);
-        return;
-      }
-
-      const userId = session.user.id;
 
       const startOfMonth = new Date();
       startOfMonth.setDate(1);
@@ -135,9 +127,12 @@ export default function DashboardPage() {
     }
   }, [supabase]);
 
+  // Wait for auth context to settle before fetching — avoids racing getSession()
+  const userId = user?.id;
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    if (authLoading || !userId) return;
+    fetchData(userId);
+  }, [authLoading, userId, fetchData]);
 
   const firstName = profile?.full_name?.split(' ')[0] || 'there';
 
@@ -157,7 +152,7 @@ export default function DashboardPage() {
           <AlertCircle className="w-6 h-6 text-red-500" />
         </div>
         <p className="text-sm text-surface-600 text-center max-w-sm">{error}</p>
-        <button onClick={fetchData} className="btn-secondary flex items-center gap-2 text-sm">
+        <button onClick={() => userId && fetchData(userId)} className="btn-secondary flex items-center gap-2 text-sm">
           <RefreshCw className="w-4 h-4" />
           Try again
         </button>
