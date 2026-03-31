@@ -43,8 +43,6 @@ export interface Database {
           training_stage: TrainingStage | null;
           primary_specialty: string;
           secondary_specialties: string[];
-          // IDs of specialties the user has hidden. Data is preserved in
-          // portfolio_items and uploads — re-enabling restores it instantly.
           hidden_specialties: string[];
           region: string;
           avatar_url: string;
@@ -272,7 +270,7 @@ export interface Database {
           created_at?: string;
         };
       };
-            reminders: {
+      reminders: {
         Row: {
           id: string;
           user_id: string;
@@ -312,7 +310,6 @@ export interface Database {
     };
   };
 }
-
 
 export type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 export type ProfileUpdate = Database['public']['Tables']['profiles']['Update'];
