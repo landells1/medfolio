@@ -4,7 +4,9 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/components/ui/toast';
-import { User, Download, Trash2, Loader2, Check, Shield, FileText } from 'lucide-react';
+import { UK_REGIONS, SPECIALTIES } from '@/lib/utils';
+import { cn } from '@/lib/utils';
+import { User, Download, Trash2, Loader2, Check, Shield, FileText, Eye, EyeOff } from 'lucide-react';
 import type { CaseRow, PortfolioItemRow, ProfileUpdate, TrainingStage, UploadRow } from '@/lib/database.types';
 
 const TRAINING_STAGES: Array<{ value: TrainingStage; label: string }> = [
@@ -31,40 +33,40 @@ const TRAINING_STAGES: Array<{ value: TrainingStage; label: string }> = [
   { value: 'Other', label: 'Other' },
 ];
 
-const UK_REGIONS = [
-  'East of England',
-  'London',
-  'Midlands',
-  'North East and Yorkshire',
-  'North West',
-  'South East',
-  'South West',
-  'Wales',
-  'Scotland',
-  'Northern Ireland',
-];
-
 export default function SettingsPage() {
   const { profile, refreshProfile } = useAuth();
   const supabase = createClient();
   const { toast } = useToast();
 
-  const [fullName, setFullName] = useState('');
+  // Profile fields — split full_name into first + last
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [trainingStage, setTrainingStage] = useState<TrainingStage | ''>('');
   const [primarySpecialty, setPrimarySpecialty] = useState('');
   const [region, setRegion] = useState('');
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [profileSaved, setProfileSaved] = useState(false);
+
+  // Specialty management
+  const [hiddenSpecialties, setHiddenSpecialties] = useState<string[]>([]);
+  const [savingSpecialties, setSavingSpecialties] = useState(false);
+  const [specialtiesSaved, setSpecialtiesSaved] = useState(false);
+
+  // Account
   const [exporting, setExporting] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState('');
 
   useEffect(() => {
     if (profile) {
-      setFullName(profile.full_name || '');
+      // Split full_name on first space into first + last
+      const parts = (profile.full_name || '').split(' ');
+      setFirstName(parts[0] || '');
+      setLastName(parts.slice(1).join(' '));
       setTrainingStage(profile.training_stage || '');
       setPrimarySpecialty(profile.primary_specialty || '');
       setRegion(profile.region || '');
+      setHiddenSpecialties(profile.hidden_specialties ?? []);
     }
   }, [profile]);
 
@@ -79,11 +81,14 @@ export default function SettingsPage() {
 
     setSaving(true);
 
+    const fullName = [firstName.trim(), lastName.trim()].filter(Boolean).join(' ');
+
     const updates: ProfileUpdate = {
-      full_name: fullName.trim(),
+      full_name: fullName,
       training_stage: trainingStage || null,
       primary_specialty: primarySpecialty.trim(),
       region,
+      updated_at: new Date().toISOString(),
     };
 
     const { error } = await supabase
@@ -91,17 +96,50 @@ export default function SettingsPage() {
       .update(updates as never)
       .eq('id', session.user.id);
 
+    setSaving(false);
+
     if (error) {
-      setSaving(false);
       toast(error.message, 'error');
       return;
     }
 
     await refreshProfile();
-    setSaving(false);
-    setSaved(true);
+    setProfileSaved(true);
     toast('Profile saved successfully');
-    setTimeout(() => setSaved(false), 2000);
+    setTimeout(() => setProfileSaved(false), 3000);
+  };
+
+  const handleSaveSpecialties = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) {
+      toast('Not signed in. Please log in and try again.', 'error');
+      return;
+    }
+
+    setSavingSpecialties(true);
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({ hidden_specialties: hiddenSpecialties, updated_at: new Date().toISOString() } as never)
+      .eq('id', session.user.id);
+
+    setSavingSpecialties(false);
+
+    if (error) {
+      toast(error.message, 'error');
+      return;
+    }
+
+    await refreshProfile();
+    setSpecialtiesSaved(true);
+    toast('Specialty preferences saved');
+    setTimeout(() => setSpecialtiesSaved(false), 3000);
+  };
+
+  const toggleHidden = (id: string) => {
+    setHiddenSpecialties((prev) =>
+      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
+    );
   };
 
   const handleExportData = async () => {
@@ -126,7 +164,7 @@ export default function SettingsPage() {
     const exportData = {
       exported_at: new Date().toISOString(),
       profile: {
-        full_name: fullName,
+        full_name: [firstName, lastName].filter(Boolean).join(' '),
         email: session.user.email || profile?.email || '',
         training_stage: trainingStage,
         primary_specialty: primarySpecialty,
@@ -286,9 +324,27 @@ export default function SettingsPage() {
         </div>
 
         <form onSubmit={handleSaveProfile} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-surface-700 mb-1.5">Full name</label>
-            <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} className="input-field" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-surface-700 mb-1.5">First name</label>
+              <input
+                type="text"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                className="input-field"
+                placeholder="John"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-surface-700 mb-1.5">Last name</label>
+              <input
+                type="text"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                className="input-field"
+                placeholder="Smith"
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -307,7 +363,13 @@ export default function SettingsPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-surface-700 mb-1.5">Primary specialty</label>
-              <input type="text" value={primarySpecialty} onChange={(e) => setPrimarySpecialty(e.target.value)} className="input-field" placeholder="e.g. Internal Medicine" />
+              <input
+                type="text"
+                value={primarySpecialty}
+                onChange={(e) => setPrimarySpecialty(e.target.value)}
+                className="input-field"
+                placeholder="e.g. Internal Medicine"
+              />
             </div>
           </div>
 
@@ -321,11 +383,93 @@ export default function SettingsPage() {
             </select>
           </div>
 
-          <button type="submit" disabled={saving} className="btn-primary">
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : saved ? <Check className="w-4 h-4" /> : null}
-            {saved ? 'Saved' : 'Save changes'}
-          </button>
+          <div className="flex items-center gap-3">
+            <button type="submit" disabled={saving} className="btn-primary">
+              {saving ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : profileSaved ? (
+                <Check className="w-4 h-4" />
+              ) : null}
+              {saving ? 'Saving...' : profileSaved ? 'Saved!' : 'Save changes'}
+            </button>
+            {profileSaved && (
+              <span className="text-sm text-emerald-600 font-medium flex items-center gap-1.5">
+                <Check className="w-4 h-4" />
+                Changes saved successfully
+              </span>
+            )}
+          </div>
         </form>
+      </div>
+
+      {/* Specialty management */}
+      <div className="card p-6">
+        <div className="flex items-center gap-3 mb-2">
+          <Eye className="w-5 h-5 text-surface-500" />
+          <h2 className="font-display font-semibold text-surface-900">Manage specialties</h2>
+        </div>
+        <p className="text-sm text-surface-500 mb-5">
+          Choose which specialties appear in your sidebar. Hidden specialties preserve all your
+          data — re-enabling them restores everything instantly.
+        </p>
+
+        <div className="space-y-2 mb-5">
+          {SPECIALTIES.map((spec) => {
+            const isHidden = hiddenSpecialties.includes(spec.id);
+            return (
+              <div
+                key={spec.id}
+                className={cn(
+                  'flex items-center justify-between px-4 py-3 rounded-xl border transition-all',
+                  isHidden ? 'border-surface-200 bg-surface-50' : 'border-brand-200 bg-brand-50'
+                )}
+              >
+                <div>
+                  <p className={cn('text-sm font-medium', isHidden ? 'text-surface-500' : 'text-surface-800')}>
+                    {spec.name}
+                  </p>
+                  <p className="text-xs text-surface-400">{spec.years.join(', ')}</p>
+                </div>
+                <button
+                  onClick={() => toggleHidden(spec.id)}
+                  className={cn(
+                    'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
+                    isHidden
+                      ? 'bg-surface-200 text-surface-600 hover:bg-surface-300'
+                      : 'bg-brand-100 text-brand-700 hover:bg-brand-200'
+                  )}
+                >
+                  {isHidden ? (
+                    <><EyeOff className="w-3.5 h-3.5" /> Hidden</>
+                  ) : (
+                    <><Eye className="w-3.5 h-3.5" /> Visible</>
+                  )}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleSaveSpecialties}
+            disabled={savingSpecialties}
+            className="btn-primary"
+          >
+            {savingSpecialties ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : specialtiesSaved ? (
+              <Check className="w-4 h-4" />
+            ) : null}
+            {savingSpecialties ? 'Saving...' : specialtiesSaved ? 'Saved!' : 'Save specialty preferences'}
+          </button>
+          {specialtiesSaved && (
+            <span className="text-sm text-emerald-600 font-medium flex items-center gap-1.5">
+              <Check className="w-4 h-4" />
+              Preferences saved
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Data export */}
@@ -357,7 +501,7 @@ export default function SettingsPage() {
       <div className="card p-6">
         <div className="flex items-center gap-3 mb-5">
           <Shield className="w-5 h-5 text-surface-500" />
-          <h2 className="font-display font-semibold text-surface-900">Privacy & security</h2>
+          <h2 className="font-display font-semibold text-surface-900">Privacy &amp; security</h2>
         </div>
         <div className="text-sm text-surface-600 space-y-2">
           <p>Your data is stored securely on UK servers (London region) with AES-256 encryption at rest and TLS 1.3 in transit.</p>
@@ -377,8 +521,18 @@ export default function SettingsPage() {
           portfolio items, and uploaded files. This action cannot be undone.
         </p>
         <div className="flex flex-col sm:flex-row gap-3 items-start">
-          <input type="text" value={deleteConfirm} onChange={(e) => setDeleteConfirm(e.target.value)} className="input-field sm:w-48" placeholder='Type "DELETE" to confirm' />
-          <button onClick={handleDeleteAccount} disabled={deleteConfirm !== 'DELETE' || deleting} className="btn-primary !bg-red-600 hover:!bg-red-700 disabled:!bg-red-300">
+          <input
+            type="text"
+            value={deleteConfirm}
+            onChange={(e) => setDeleteConfirm(e.target.value)}
+            className="input-field sm:w-48"
+            placeholder='Type "DELETE" to confirm'
+          />
+          <button
+            onClick={handleDeleteAccount}
+            disabled={deleteConfirm !== 'DELETE' || deleting}
+            className="btn-primary !bg-red-600 hover:!bg-red-700 disabled:!bg-red-300"
+          >
             {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
             Delete my account
           </button>
