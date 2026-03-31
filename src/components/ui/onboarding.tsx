@@ -46,10 +46,9 @@ export function Onboarding({ onComplete }: OnboardingProps) {
   const [trainingStage, setTrainingStage] = useState<TrainingStage | ''>(profile?.training_stage || '');
   const [primarySpecialty, setPrimarySpecialty] = useState(profile?.primary_specialty || '');
   const [region, setRegion] = useState(profile?.region || '');
-  // Specialties the user wants to track — defaults to all available
-  const [activeSpecialties, setActiveSpecialties] = useState<string[]>(
-    SPECIALTIES.map((s) => s.id)
-  );
+  // Specialties the user wants to track — none selected by default,
+  // as most users will only need one or two
+  const [activeSpecialties, setActiveSpecialties] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
   const totalSteps = 4;

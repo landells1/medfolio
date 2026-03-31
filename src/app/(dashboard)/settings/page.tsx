@@ -6,7 +6,8 @@ import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/components/ui/toast';
 import { UK_REGIONS, SPECIALTIES } from '@/lib/utils';
 import { cn } from '@/lib/utils';
-import { User, Download, Trash2, Loader2, Check, Shield, FileText, Eye, EyeOff } from 'lucide-react';
+import { getUserStorageUsed, formatBytes, storageUsedPercent, STORAGE_LIMIT_LABEL } from '@/lib/storage';
+import { User, Download, Trash2, Loader2, Check, Shield, FileText, Eye, EyeOff, HardDrive } from 'lucide-react';
 import type { CaseRow, PortfolioItemRow, ProfileUpdate, TrainingStage, UploadRow } from '@/lib/database.types';
 
 const TRAINING_STAGES: Array<{ value: TrainingStage; label: string }> = [
@@ -52,6 +53,9 @@ export default function SettingsPage() {
   const [savingSpecialties, setSavingSpecialties] = useState(false);
   const [specialtiesSaved, setSpecialtiesSaved] = useState(false);
 
+  // Storage usage
+  const [storageUsed, setStorageUsed] = useState<number | null>(null);
+
   // Account
   const [exporting, setExporting] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -67,6 +71,11 @@ export default function SettingsPage() {
       setPrimarySpecialty(profile.primary_specialty || '');
       setRegion(profile.region || '');
       setHiddenSpecialties(profile.hidden_specialties ?? []);
+
+      // Load storage usage
+      getUserStorageUsed(profile.id)
+        .then(setStorageUsed)
+        .catch(() => setStorageUsed(null));
     }
   }, [profile]);
 
@@ -470,6 +479,48 @@ export default function SettingsPage() {
             </span>
           )}
         </div>
+      </div>
+
+      {/* Storage usage */}
+      <div className="card p-6">
+        <div className="flex items-center gap-3 mb-5">
+          <HardDrive className="w-5 h-5 text-surface-500" />
+          <h2 className="font-display font-semibold text-surface-900">Storage</h2>
+        </div>
+        {storageUsed === null ? (
+          <div className="flex items-center gap-2 text-sm text-surface-400">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Loading storage usage...
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div className="flex justify-between items-baseline">
+              <span className="text-sm text-surface-600">
+                {formatBytes(storageUsed)} used
+              </span>
+              <span className="text-sm text-surface-400">
+                {STORAGE_LIMIT_LABEL} limit
+              </span>
+            </div>
+            <div className="h-2.5 rounded-full bg-surface-100 overflow-hidden">
+              <div
+                className={cn(
+                  'h-full rounded-full transition-all duration-500',
+                  storageUsedPercent(storageUsed) >= 90
+                    ? 'bg-red-500'
+                    : storageUsedPercent(storageUsed) >= 70
+                    ? 'bg-amber-400'
+                    : 'bg-brand-500'
+                )}
+                style={{ width: `${storageUsedPercent(storageUsed)}%` }}
+              />
+            </div>
+            <p className="text-xs text-surface-400">
+              {storageUsedPercent(storageUsed)}% used —{' '}
+              {formatBytes(Math.max(0, 250 * 1024 * 1024 - storageUsed))} remaining
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Data export */}
