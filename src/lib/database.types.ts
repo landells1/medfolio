@@ -75,6 +75,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: never[];
       };
       checklist_templates: {
         Row: {
@@ -116,6 +117,7 @@ export interface Database {
           metadata?: Json;
           created_at?: string;
         };
+        Relationships: never[];
       };
       portfolio_items: {
         Row: {
@@ -175,6 +177,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: never[];
       };
       cases: {
         Row: {
@@ -234,6 +237,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: never[];
       };
       uploads: {
         Row: {
@@ -269,6 +273,7 @@ export interface Database {
           mime_type?: string;
           created_at?: string;
         };
+        Relationships: never[];
       };
       reminders: {
         Row: {
@@ -298,6 +303,7 @@ export interface Database {
           is_completed?: boolean;
           created_at?: string;
         };
+        Relationships: never[];
       };
     };
     Views: {
