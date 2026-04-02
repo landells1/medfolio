@@ -65,7 +65,7 @@ export function Sidebar() {
     };
 
     fetchAppSets();
-  }, [user?.id]);
+  }, [user?.id, pathname]);
 
   const navItems = [
     { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -277,17 +277,24 @@ export function Sidebar() {
 
         {/* User info */}
         <div className="flex items-center gap-3 px-3 py-3 mt-2 rounded-lg bg-white/5">
-          <div className="w-8 h-8 rounded-full bg-brand-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-            {getInitials(profile?.full_name || 'U')}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-white truncate">
-              {profile?.full_name || 'User'}
-            </p>
-            <p className="text-xs text-surface-500 truncate">
-              {profile?.training_stage || 'Set your stage'}
-            </p>
-          </div>
+          {(() => {
+            const displayName = profile?.full_name || (user?.user_metadata?.full_name as string) || '';
+            return (
+              <>
+                <div className="w-8 h-8 rounded-full bg-brand-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                  {displayName ? getInitials(displayName) : <span className="text-surface-400">?</span>}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-white truncate">
+                    {displayName || <span className="text-surface-500 italic text-xs">Set your name</span>}
+                  </p>
+                  <p className="text-xs text-surface-500 truncate">
+                    {profile?.training_stage || 'Set your stage'}
+                  </p>
+                </div>
+              </>
+            );
+          })()}
         </div>
       </div>
     </div>
