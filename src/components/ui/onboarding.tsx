@@ -68,9 +68,16 @@ export function Onboarding({ onComplete }: OnboardingProps) {
       (id) => !activeSpecialties.includes(id)
     );
 
+    // Always save a non-empty primary_specialty so the layout condition
+    // `!profile.primary_specialty` becomes false and onboarding never shows again,
+    // even if localStorage is cleared.
+    const firstActive = activeSpecialties[0]
+      ? SPECIALTIES.find((s) => s.id === activeSpecialties[0])?.name
+      : undefined;
+
     const updates: ProfileUpdate = {
       training_stage: trainingStage || null,
-      primary_specialty: primarySpecialty,
+      primary_specialty: primarySpecialty || firstActive || 'General',
       region,
       hidden_specialties: hiddenSpecialties,
       updated_at: new Date().toISOString(),

@@ -23,19 +23,26 @@ import type { ChecklistSetRow, UserChecklistSetRow } from '@/lib/database.types'
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { profile, user, signOut } = useAuth();
+  const { profile, user, loading: authLoading, signOut } = useAuth();
   const [trainingOpen, setTrainingOpen] = useState(true);
   const [applicationsOpen, setApplicationsOpen] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   // Active application sets for this user
   const [activeAppSets, setActiveAppSets] = useState<Array<{ id: string; specialty: string; name: string }>>([]);
+  const [appSetsLoading, setAppSetsLoading] = useState(true);
 
   useEffect(() => {
-    if (!user?.id) return;
+    if (authLoading) return;
+    if (!user?.id) {
+      setActiveAppSets([]);
+      setAppSetsLoading(false);
+      return;
+    }
     const supabase = createClient();
 
     const fetchAppSets = async () => {
+      setAppSetsLoading(true);
       // Fetch user's activated application checklist sets
       const { data: userSets, error: userSetsError } = await supabase
         .from('user_checklist_sets')
@@ -45,6 +52,7 @@ export function Sidebar() {
 
       if (userSetsError || !userSets || userSets.length === 0) {
         setActiveAppSets([]);
+        setAppSetsLoading(false);
         return;
       }
 
@@ -58,14 +66,16 @@ export function Sidebar() {
 
       if (setsError || !sets) {
         setActiveAppSets([]);
+        setAppSetsLoading(false);
         return;
       }
 
       setActiveAppSets((sets as ChecklistSetRow[]).map((s) => ({ id: s.id, specialty: s.specialty, name: s.name })));
+      setAppSetsLoading(false);
     };
 
     fetchAppSets();
-  }, [user?.id, pathname]);
+  }, [user?.id, pathname, authLoading]);
 
   const navItems = [
     { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -181,7 +191,11 @@ export function Sidebar() {
 
           {applicationsOpen && (
             <div className="ml-5 pl-4 border-l border-surface-800 mt-1 space-y-0.5">
-              {activeAppSets.length > 0 ? (
+              {appSetsLoading ? (
+                <div className="px-3 py-1.5 space-y-1.5">
+                  <div className="h-3 w-28 rounded bg-white/10 animate-pulse" />
+                </div>
+              ) : activeAppSets.length > 0 ? (
                 activeAppSets.map((set) => (
                   <a
                     key={set.id}
@@ -277,12 +291,20 @@ export function Sidebar() {
 
         {/* User info */}
         <div className="flex items-center gap-3 px-3 py-3 mt-2 rounded-lg bg-white/5">
-          {(() => {
+          {authLoading ? (
+            <>
+              <div className="w-8 h-8 rounded-full bg-white/10 animate-pulse flex-shrink-0" />
+              <div className="flex-1 space-y-1.5">
+                <div className="h-3 w-24 rounded bg-white/10 animate-pulse" />
+                <div className="h-2.5 w-16 rounded bg-white/10 animate-pulse" />
+              </div>
+            </>
+          ) : (() => {
             const displayName = profile?.full_name || (user?.user_metadata?.full_name as string) || '';
             return (
               <>
                 <div className="w-8 h-8 rounded-full bg-brand-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                  {displayName ? getInitials(displayName) : <span className="text-surface-400">?</span>}
+                  {displayName ? getInitials(displayName) : '?'}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-white truncate">
