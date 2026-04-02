@@ -26,7 +26,7 @@ type TemplateSummary = { id: string; specialty: string; training_year: string };
 type PortfolioSummary = Pick<PortfolioItemRow, 'specialty' | 'status' | 'template_id'>;
 
 export default function DashboardPage() {
-  const { profile } = useAuth();
+  const { profile, user, loading: authLoading } = useAuth();
   const supabase = createClient();
   const [stats, setStats] = useState({
     totalCases: 0,
@@ -37,21 +37,12 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (userId: string) => {
     setLoading(true);
     setError(null);
     let baseDataLoaded = false;
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) {
-        setError('Not signed in. Please log in and try again.');
-        setLoading(false);
-        return;
-      }
-
-      const userId = session.user.id;
-
       const startOfMonth = new Date();
       startOfMonth.setDate(1);
       startOfMonth.setHours(0, 0, 0, 0);
@@ -135,9 +126,12 @@ export default function DashboardPage() {
     }
   }, [supabase]);
 
+  // ⚠️ INFINITE LOADING BUG WARNING — do not change this pattern.
+  const userId = user?.id;
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    if (authLoading || !userId) return;
+    fetchData(userId);
+  }, [authLoading, userId, fetchData]);
 
   const firstName = profile?.full_name?.split(' ')[0] || 'there';
 
@@ -157,7 +151,7 @@ export default function DashboardPage() {
           <AlertCircle className="w-6 h-6 text-red-500" />
         </div>
         <p className="text-sm text-surface-600 text-center max-w-sm">{error}</p>
-        <button onClick={fetchData} className="btn-secondary flex items-center gap-2 text-sm">
+        <button onClick={() => userId && fetchData(userId)} className="btn-secondary flex items-center gap-2 text-sm">
           <RefreshCw className="w-4 h-4" />
           Try again
         </button>
@@ -231,14 +225,14 @@ export default function DashboardPage() {
         {/* Portfolio progress */}
         <div className="lg:col-span-3 card p-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="font-display font-semibold text-surface-900">Portfolio progress</h2>
+            <h2 className="font-display font-semibold text-surface-900">Training progress</h2>
           </div>
 
           {SPECIALTIES.length < 1 ? (
             <div className="text-center py-12">
               <Stethoscope className="w-10 h-10 text-surface-300 mx-auto mb-3" />
               <p className="text-surface-500 mb-4">No specialties set up yet</p>
-              <Link href="/portfolio/foundation" className="btn-primary text-sm">
+              <Link href="/training/foundation" className="btn-primary text-sm">
                 Set up your portfolio
               </Link>
             </div>
@@ -246,7 +240,7 @@ export default function DashboardPage() {
             <div className="text-center py-12">
               <Stethoscope className="w-10 h-10 text-surface-300 mx-auto mb-3" />
               <p className="text-surface-500 mb-4">No portfolio data yet</p>
-              <Link href="/portfolio/foundation" className="btn-primary text-sm">
+              <Link href="/training/foundation" className="btn-primary text-sm">
                 Start tracking
               </Link>
             </div>
@@ -269,7 +263,7 @@ export default function DashboardPage() {
                         return (
                           <Link
                             key={year}
-                            href={`/portfolio/${spec.id}`}
+                            href={`/training/${spec.id}`}
                             className="group flex flex-col items-center gap-1.5"
                           >
                             <ProgressRing

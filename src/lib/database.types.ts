@@ -31,6 +31,7 @@ export type TrainingStage =
 
 export type ItemStatus = 'not_started' | 'in_progress' | 'completed';
 export type CaseComplexity = 'routine' | 'moderate' | 'complex' | 'rare';
+export type ChecklistSetKind = 'training' | 'application';
 
 export interface Database {
   public: {
@@ -43,6 +44,7 @@ export interface Database {
           training_stage: TrainingStage | null;
           primary_specialty: string;
           secondary_specialties: string[];
+          hidden_specialties: string[];
           region: string;
           avatar_url: string;
           created_at: string;
@@ -55,6 +57,7 @@ export interface Database {
           training_stage?: TrainingStage | null;
           primary_specialty?: string;
           secondary_specialties?: string[];
+          hidden_specialties?: string[];
           region?: string;
           avatar_url?: string;
           created_at?: string;
@@ -67,15 +70,51 @@ export interface Database {
           training_stage?: TrainingStage | null;
           primary_specialty?: string;
           secondary_specialties?: string[];
+          hidden_specialties?: string[];
           region?: string;
           avatar_url?: string;
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: never[];
+      };
+      checklist_sets: {
+        Row: {
+          id: string;
+          kind: ChecklistSetKind;
+          specialty: string;
+          name: string;
+          description: string;
+          sort_order: number;
+          metadata: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          kind: ChecklistSetKind;
+          specialty: string;
+          name: string;
+          description?: string;
+          sort_order?: number;
+          metadata?: Json;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          kind?: ChecklistSetKind;
+          specialty?: string;
+          name?: string;
+          description?: string;
+          sort_order?: number;
+          metadata?: Json;
+          created_at?: string;
+        };
+        Relationships: never[];
       };
       checklist_templates: {
         Row: {
           id: string;
+          checklist_set_id: string | null;
           specialty: string;
           training_year: string;
           category: string;
@@ -89,6 +128,7 @@ export interface Database {
         };
         Insert: {
           id?: string;
+          checklist_set_id?: string | null;
           specialty: string;
           training_year: string;
           category: string;
@@ -102,6 +142,7 @@ export interface Database {
         };
         Update: {
           id?: string;
+          checklist_set_id?: string | null;
           specialty?: string;
           training_year?: string;
           category?: string;
@@ -113,6 +154,7 @@ export interface Database {
           metadata?: Json;
           created_at?: string;
         };
+        Relationships: never[];
       };
       portfolio_items: {
         Row: {
@@ -172,6 +214,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: never[];
       };
       cases: {
         Row: {
@@ -231,6 +274,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: never[];
       };
       uploads: {
         Row: {
@@ -266,6 +310,7 @@ export interface Database {
           mime_type?: string;
           created_at?: string;
         };
+        Relationships: never[];
       };
       reminders: {
         Row: {
@@ -295,6 +340,141 @@ export interface Database {
           is_completed?: boolean;
           created_at?: string;
         };
+        Relationships: never[];
+      };
+      user_checklist_sets: {
+        Row: {
+          id: string;
+          user_id: string;
+          checklist_set_id: string;
+          is_active: boolean;
+          started_at: string;
+          archived_at: string | null;
+          metadata: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          checklist_set_id: string;
+          is_active?: boolean;
+          started_at?: string;
+          archived_at?: string | null;
+          metadata?: Json;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          checklist_set_id?: string;
+          is_active?: boolean;
+          started_at?: string;
+          archived_at?: string | null;
+          metadata?: Json;
+          created_at?: string;
+        };
+        Relationships: never[];
+      };
+      evidence_items: {
+        Row: {
+          id: string;
+          user_id: string;
+          title: string;
+          evidence_type: string;
+          description: string;
+          evidence_date: string | null;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          title: string;
+          evidence_type?: string;
+          description?: string;
+          evidence_date?: string | null;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          title?: string;
+          evidence_type?: string;
+          description?: string;
+          evidence_date?: string | null;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: never[];
+      };
+      evidence_files: {
+        Row: {
+          id: string;
+          user_id: string;
+          evidence_item_id: string;
+          file_name: string;
+          file_path: string;
+          file_size: number;
+          mime_type: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          evidence_item_id: string;
+          file_name: string;
+          file_path: string;
+          file_size?: number;
+          mime_type?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          evidence_item_id?: string;
+          file_name?: string;
+          file_path?: string;
+          file_size?: number;
+          mime_type?: string;
+          created_at?: string;
+        };
+        Relationships: never[];
+      };
+      evidence_links: {
+        Row: {
+          id: string;
+          evidence_item_id: string;
+          portfolio_item_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          evidence_item_id: string;
+          portfolio_item_id: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          evidence_item_id?: string;
+          portfolio_item_id?: string;
+          created_at?: string;
+        };
+        Relationships: never[];
+      };
+    };
+    Views: {
+      [_ in never]: never;
+    };
+    Functions: {
+      get_user_storage_used: {
+        Args: {
+          p_user_id: string;
+        };
+        Returns: number;
       };
     };
   };
@@ -309,3 +489,11 @@ export type PortfolioItemRow = Database['public']['Tables']['portfolio_items']['
 export type PortfolioItemInsert = Database['public']['Tables']['portfolio_items']['Insert'];
 export type PortfolioItemUpdate = Database['public']['Tables']['portfolio_items']['Update'];
 export type UploadRow = Database['public']['Tables']['uploads']['Row'];
+export type ChecklistSetRow = Database['public']['Tables']['checklist_sets']['Row'];
+export type UserChecklistSetRow = Database['public']['Tables']['user_checklist_sets']['Row'];
+export type EvidenceItemRow = Database['public']['Tables']['evidence_items']['Row'];
+export type EvidenceItemInsert = Database['public']['Tables']['evidence_items']['Insert'];
+export type EvidenceItemUpdate = Database['public']['Tables']['evidence_items']['Update'];
+export type EvidenceFileRow = Database['public']['Tables']['evidence_files']['Row'];
+export type EvidenceLinkRow = Database['public']['Tables']['evidence_links']['Row'];
+export type ChecklistTemplateRow = Database['public']['Tables']['checklist_templates']['Row'];

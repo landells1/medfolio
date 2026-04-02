@@ -1,14 +1,13 @@
 'use client';
 
-import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
-import { cn, getInitials, SPECIALTIES } from '@/lib/utils';
+import { cn, getInitials, SPECIALTIES, APPLICATION_SPECIALTIES } from '@/lib/utils';
+import { createClient } from '@/lib/supabase/client';
 import {
   LayoutDashboard,
   ClipboardCheck,
   BookOpen,
-  BarChart3,
   Settings,
   LogOut,
   ChevronDown,
@@ -17,15 +16,56 @@ import {
   X,
   Compass,
   MessageSquarePlus,
-
+  Target,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import type { ChecklistSetRow, UserChecklistSetRow } from '@/lib/database.types';
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { profile, signOut } = useAuth();
-  const [portfolioOpen, setPortfolioOpen] = useState(true);
+  const { profile, user, signOut } = useAuth();
+  const [trainingOpen, setTrainingOpen] = useState(true);
+  const [applicationsOpen, setApplicationsOpen] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Active application sets for this user
+  const [activeAppSets, setActiveAppSets] = useState<Array<{ id: string; specialty: string; name: string }>>([]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    const supabase = createClient();
+
+    const fetchAppSets = async () => {
+      // Fetch user's activated application checklist sets
+      const { data: userSets, error: userSetsError } = await supabase
+        .from('user_checklist_sets')
+        .select('checklist_set_id')
+        .eq('user_id', user.id)
+        .eq('is_active', true);
+
+      if (userSetsError || !userSets || userSets.length === 0) {
+        setActiveAppSets([]);
+        return;
+      }
+
+      const setIds = (userSets as UserChecklistSetRow[]).map((s) => s.checklist_set_id);
+
+      const { data: sets, error: setsError } = await supabase
+        .from('checklist_sets')
+        .select('id, specialty, name')
+        .eq('kind', 'application')
+        .in('id', setIds);
+
+      if (setsError || !sets) {
+        setActiveAppSets([]);
+        return;
+      }
+
+      setActiveAppSets((sets as ChecklistSetRow[]).map((s) => ({ id: s.id, specialty: s.specialty, name: s.name })));
+    };
+
+    fetchAppSets();
+  }, [user?.id]);
 
   const navItems = [
     { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -37,20 +77,30 @@ export function Sidebar() {
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/');
 
+  const visibleSpecialties = SPECIALTIES.filter(
+    (spec) => !(profile?.hidden_specialties ?? []).includes(spec.id)
+  );
+
+  // Map application specialty DB name to URL slug
+  const getAppSlug = (dbSpecialty: string) => {
+    const found = APPLICATION_SPECIALTIES.find((s) => s.name === dbSpecialty);
+    return found?.id || dbSpecialty.toLowerCase();
+  };
+
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
       {/* Logo */}
-      <Link href="/dashboard" className="px-5 h-16 flex items-center gap-2.5 border-b border-surface-800/50 flex-shrink-0 hover:bg-white/5 transition-colors">
+      <a href="/dashboard" className="px-5 h-16 flex items-center gap-2.5 border-b border-surface-800/50 flex-shrink-0 hover:bg-white/5 transition-colors">
         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center">
           <span className="text-white font-bold text-sm">M</span>
         </div>
         <span className="font-display font-bold text-[15px] text-white">MedFolio</span>
-      </Link>
+      </a>
 
       {/* Main nav */}
       <nav className="flex-1 px-3 py-4 overflow-y-auto space-y-0.5">
         {navItems.map((item) => (
-          <Link
+          <a
             key={item.href}
             href={item.href}
             onClick={() => setMobileOpen(false)}
@@ -63,51 +113,102 @@ export function Sidebar() {
           >
             <item.icon className="w-[18px] h-[18px] flex-shrink-0" />
             {item.label}
-          </Link>
+          </a>
         ))}
 
-        {/* Portfolio section with sub-nav */}
+        {/* My Training section */}
         <div>
           <button
-            onClick={() => setPortfolioOpen(!portfolioOpen)}
+            onClick={() => setTrainingOpen(!trainingOpen)}
             className={cn(
               'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 w-full',
-              pathname.startsWith('/portfolio')
+              pathname.startsWith('/training') || pathname.startsWith('/portfolio')
                 ? 'bg-white/10 text-white'
                 : 'text-surface-400 hover:text-white hover:bg-white/5'
             )}
           >
             <ClipboardCheck className="w-[18px] h-[18px] flex-shrink-0" />
-            <span className="flex-1 text-left">Portfolio</span>
-            {portfolioOpen ? (
+            <span className="flex-1 text-left">My Training</span>
+            {trainingOpen ? (
               <ChevronDown className="w-4 h-4 text-surface-500" />
             ) : (
               <ChevronRight className="w-4 h-4 text-surface-500" />
             )}
           </button>
 
-          {portfolioOpen && (
+          {trainingOpen && (
             <div className="ml-5 pl-4 border-l border-surface-800 mt-1 space-y-0.5">
-              {SPECIALTIES.map((spec) => (
-                <Link
+              {visibleSpecialties.map((spec) => (
+                <a
                   key={spec.id}
-                  href={`/portfolio/${spec.id}`}
+                  href={`/training/${spec.id}`}
                   onClick={() => setMobileOpen(false)}
                   className={cn(
                     'flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-all duration-150',
-                    isActive(`/portfolio/${spec.id}`)
+                    isActive(`/training/${spec.id}`)
                       ? 'text-brand-400 bg-brand-500/10'
                       : 'text-surface-500 hover:text-surface-300 hover:bg-white/5'
                   )}
                 >
                   {spec.name}
-                </Link>
+                </a>
               ))}
             </div>
           )}
         </div>
 
-        <Link
+        {/* Future Applications section */}
+        <div>
+          <button
+            onClick={() => setApplicationsOpen(!applicationsOpen)}
+            className={cn(
+              'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 w-full',
+              pathname.startsWith('/applications')
+                ? 'bg-white/10 text-white'
+                : 'text-surface-400 hover:text-white hover:bg-white/5'
+            )}
+          >
+            <Target className="w-[18px] h-[18px] flex-shrink-0" />
+            <span className="flex-1 text-left">Future Applications</span>
+            {applicationsOpen ? (
+              <ChevronDown className="w-4 h-4 text-surface-500" />
+            ) : (
+              <ChevronRight className="w-4 h-4 text-surface-500" />
+            )}
+          </button>
+
+          {applicationsOpen && (
+            <div className="ml-5 pl-4 border-l border-surface-800 mt-1 space-y-0.5">
+              {activeAppSets.length > 0 ? (
+                activeAppSets.map((set) => (
+                  <a
+                    key={set.id}
+                    href={`/applications/${getAppSlug(set.specialty)}`}
+                    onClick={() => setMobileOpen(false)}
+                    className={cn(
+                      'flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-all duration-150',
+                      isActive(`/applications/${getAppSlug(set.specialty)}`)
+                        ? 'text-brand-400 bg-brand-500/10'
+                        : 'text-surface-500 hover:text-surface-300 hover:bg-white/5'
+                    )}
+                  >
+                    {set.name}
+                  </a>
+                ))
+              ) : (
+                <a
+                  href="/applications"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs text-surface-600 hover:text-surface-400 hover:bg-white/5 transition-all duration-150"
+                >
+                  Browse applications
+                </a>
+              )}
+            </div>
+          )}
+        </div>
+
+        <a
           href="/cases/new"
           onClick={() => setMobileOpen(false)}
           className={cn(
@@ -119,9 +220,9 @@ export function Sidebar() {
         >
           <BookOpen className="w-[18px] h-[18px] flex-shrink-0" />
           Case Journal
-        </Link>
+        </a>
 
-        <Link
+        <a
           href="/specialties"
           onClick={() => setMobileOpen(false)}
           className={cn(
@@ -133,27 +234,14 @@ export function Sidebar() {
         >
           <Compass className="w-[18px] h-[18px] flex-shrink-0" />
           All Specialties
-        </Link>
+        </a>
 
-        <Link
-          href="/analytics"
-          onClick={() => setMobileOpen(false)}
-          className={cn(
-            'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150',
-            isActive('/analytics')
-              ? 'bg-white/10 text-white'
-              : 'text-surface-400 hover:text-white hover:bg-white/5'
-          )}
-        >
-          <BarChart3 className="w-[18px] h-[18px] flex-shrink-0" />
-          Analytics
-        </Link>
       </nav>
 
       {/* Bottom section */}
       <div className="px-3 py-3 border-t border-surface-800/50 space-y-0.5 flex-shrink-0">
         {bottomItems.map((item) => (
-          <Link
+          <a
             key={item.href}
             href={item.href}
             onClick={() => setMobileOpen(false)}
@@ -166,17 +254,17 @@ export function Sidebar() {
           >
             <item.icon className="w-[18px] h-[18px] flex-shrink-0" />
             {item.label}
-          </Link>
+          </a>
         ))}
-        <Link
+        <a
           href="/contact"
           onClick={() => setMobileOpen(false)}
           className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-surface-400 hover:text-white hover:bg-white/5 transition-all duration-150 w-full"
         >
           <MessageSquarePlus className="w-[18px] h-[18px] flex-shrink-0" />
           Send feedback
-        </Link>
-        
+        </a>
+
         <button
           onClick={signOut}
           className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-surface-400 hover:text-red-400 hover:bg-red-500/10 transition-all duration-150 w-full"
