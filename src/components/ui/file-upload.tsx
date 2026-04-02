@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { cn, formatDate } from '@/lib/utils';
+import { getUserStorageUsed, STORAGE_LIMIT_BYTES, STORAGE_LIMIT_LABEL, formatBytes } from '@/lib/storage';
 import {
   Upload,
   File,
@@ -109,6 +110,22 @@ export function FileUpload({
     if (file.size > MAX_FILE_SIZE) {
       setError('File too large. Maximum size is 10MB.');
       return;
+    }
+
+    // Check storage quota before uploading
+    try {
+      const used = await getUserStorageUsed(userId);
+      if (used + file.size > STORAGE_LIMIT_BYTES) {
+        const remaining = Math.max(0, STORAGE_LIMIT_BYTES - used);
+        setError(
+          `Storage limit reached. You have ${formatBytes(remaining)} remaining of your ${STORAGE_LIMIT_LABEL} quota. ` +
+          `Please delete some files to free up space.`
+        );
+        return;
+      }
+    } catch {
+      // If quota check fails, allow the upload — the RLS policy will
+      // block it server-side if the user is genuinely over quota
     }
 
     setUploading(true);

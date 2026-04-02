@@ -77,6 +77,8 @@ export function Sidebar() {
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/');
 
+  // Filter out specialties the user has hidden via Settings > Manage specialties.
+  // Portfolio data is never deleted — hiding just removes it from the nav.
   const visibleSpecialties = SPECIALTIES.filter(
     (spec) => !(profile?.hidden_specialties ?? []).includes(spec.id)
   );

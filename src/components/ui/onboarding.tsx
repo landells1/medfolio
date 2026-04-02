@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { createClient } from '@/lib/supabase/client';
-import { cn } from '@/lib/utils';
+import { cn, UK_REGIONS, SPECIALTIES } from '@/lib/utils';
 import type { ProfileUpdate, TrainingStage } from '@/lib/database.types';
 import {
   Stethoscope,
@@ -34,17 +34,6 @@ const TRAINING_STAGES: Array<{ value: TrainingStage; label: string }> = [
   { value: 'Other', label: 'Other / Student' },
 ];
 
-const SPECIALTIES_OPTIONS = [
-  { id: 'foundation', name: 'Foundation (FY1/FY2)', available: true },
-  { id: 'imt', name: 'Internal Medicine (IMT)', available: true },
-  { id: 'ophthalmology', name: 'Ophthalmology', available: true },
-  { id: 'gp', name: 'GP Training', available: false },
-  { id: 'cst', name: 'Core Surgical Training', available: false },
-  { id: 'anaesthetics', name: 'Anaesthetics', available: false },
-  { id: 'em', name: 'Emergency Medicine', available: false },
-  { id: 'paediatrics', name: 'Paediatrics', available: false },
-];
-
 interface OnboardingProps {
   onComplete: () => void;
 }
@@ -57,20 +46,33 @@ export function Onboarding({ onComplete }: OnboardingProps) {
   const [trainingStage, setTrainingStage] = useState<TrainingStage | ''>(profile?.training_stage || '');
   const [primarySpecialty, setPrimarySpecialty] = useState(profile?.primary_specialty || '');
   const [region, setRegion] = useState(profile?.region || '');
-  const [selectedSpecialties, setSelectedSpecialties] = useState<string[]>([]);
+  // Specialties the user wants to track — none selected by default,
+  // as most users will only need one or two
+  const [activeSpecialties, setActiveSpecialties] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
   const totalSteps = 4;
+
+  const toggleSpecialty = (id: string) => {
+    setActiveSpecialties((prev) =>
+      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
+    );
+  };
 
   const handleFinish = async () => {
     if (!profile) return;
     setSaving(true);
 
+    // hidden_specialties = all available specialties the user did NOT select
+    const hiddenSpecialties = SPECIALTIES.map((s) => s.id).filter(
+      (id) => !activeSpecialties.includes(id)
+    );
+
     const updates: ProfileUpdate = {
       training_stage: trainingStage || null,
       primary_specialty: primarySpecialty,
       region,
-      secondary_specialties: selectedSpecialties,
+      hidden_specialties: hiddenSpecialties,
       updated_at: new Date().toISOString(),
     };
 
@@ -82,12 +84,6 @@ export function Onboarding({ onComplete }: OnboardingProps) {
     await refreshProfile();
     setSaving(false);
     onComplete();
-  };
-
-  const toggleSpecialty = (id: string) => {
-    setSelectedSpecialties((prev) =>
-      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
-    );
   };
 
   return (
@@ -131,7 +127,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
             </div>
           )}
 
-          {/* Step 1: Training stage */}
+          {/* Step 1: Training stage + region */}
           {step === 1 && (
             <div>
               <div className="flex items-center gap-3 mb-6">
@@ -146,7 +142,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-4 gap-2 mb-4">
+              <div className="grid grid-cols-4 gap-2 mb-5">
                 {TRAINING_STAGES.map((stage) => (
                   <button
                     key={stage.value}
@@ -163,17 +159,20 @@ export function Onboarding({ onComplete }: OnboardingProps) {
                 ))}
               </div>
 
-              <div className="mt-4">
+              <div>
                 <label className="block text-sm font-medium text-surface-700 mb-1.5">
                   Region (optional)
                 </label>
-                <input
-                  type="text"
+                <select
                   value={region}
                   onChange={(e) => setRegion(e.target.value)}
                   className="input-field"
-                  placeholder="e.g. London, South East, Yorkshire"
-                />
+                >
+                  <option value="">Select your region...</option>
+                  {UK_REGIONS.map((r) => (
+                    <option key={r} value={r}>{r}</option>
+                  ))}
+                </select>
               </div>
             </div>
           )}
@@ -189,47 +188,46 @@ export function Onboarding({ onComplete }: OnboardingProps) {
                   <h2 className="font-display text-lg font-bold text-surface-900">
                     Which specialties do you want to track?
                   </h2>
-                  <p className="text-sm text-surface-500">Select all that apply</p>
+                  <p className="text-sm text-surface-500">You can change this any time in Settings</p>
                 </div>
               </div>
 
               <div className="space-y-2">
-                {SPECIALTIES_OPTIONS.map((spec) => (
-                  <button
-                    key={spec.id}
-                    onClick={() => spec.available && toggleSpecialty(spec.id)}
-                    disabled={!spec.available}
-                    className={cn(
-                      'w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all text-left',
-                      !spec.available
-                        ? 'opacity-50 cursor-not-allowed border-surface-100 bg-surface-50'
-                        : selectedSpecialties.includes(spec.id)
-                        ? 'border-brand-500 bg-brand-50'
-                        : 'border-surface-200 hover:bg-surface-50'
-                    )}
-                  >
-                    <span
+                {SPECIALTIES.map((spec) => {
+                  const active = activeSpecialties.includes(spec.id);
+                  return (
+                    <button
+                      key={spec.id}
+                      onClick={() => toggleSpecialty(spec.id)}
                       className={cn(
-                        'text-sm font-medium',
-                        selectedSpecialties.includes(spec.id)
-                          ? 'text-brand-700'
-                          : 'text-surface-700'
+                        'w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all text-left',
+                        active
+                          ? 'border-brand-500 bg-brand-50'
+                          : 'border-surface-200 hover:bg-surface-50'
                       )}
                     >
-                      {spec.name}
-                    </span>
-                    {!spec.available ? (
-                      <span className="badge-slate text-[10px]">Coming soon</span>
-                    ) : selectedSpecialties.includes(spec.id) ? (
-                      <div className="w-5 h-5 rounded-full bg-brand-500 flex items-center justify-center">
-                        <Check className="w-3 h-3 text-white" />
-                      </div>
-                    ) : (
-                      <div className="w-5 h-5 rounded-full border-2 border-surface-300" />
-                    )}
-                  </button>
-                ))}
+                      <span
+                        className={cn(
+                          'text-sm font-medium',
+                          active ? 'text-brand-700' : 'text-surface-700'
+                        )}
+                      >
+                        {spec.name}
+                      </span>
+                      {active ? (
+                        <div className="w-5 h-5 rounded-full bg-brand-500 flex items-center justify-center flex-shrink-0">
+                          <Check className="w-3 h-3 text-white" />
+                        </div>
+                      ) : (
+                        <div className="w-5 h-5 rounded-full border-2 border-surface-300 flex-shrink-0" />
+                      )}
+                    </button>
+                  );
+                })}
               </div>
+              <p className="text-xs text-surface-400 mt-3">
+                Your portfolio data is always preserved — hiding a specialty just removes it from your sidebar.
+              </p>
             </div>
           )}
 
@@ -250,6 +248,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
               <div className="grid grid-cols-2 gap-3 max-w-sm mx-auto">
                 <button
                   onClick={handleFinish}
+                  disabled={saving}
                   className="card-hover p-4 text-center group"
                 >
                   <ClipboardCheck className="w-6 h-6 text-brand-500 mx-auto mb-2" />
@@ -259,6 +258,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
                 </button>
                 <button
                   onClick={handleFinish}
+                  disabled={saving}
                   className="card-hover p-4 text-center group"
                 >
                   <BookOpen className="w-6 h-6 text-brand-500 mx-auto mb-2" />
