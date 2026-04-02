@@ -19,8 +19,7 @@ import {
   Target,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import type { User } from '@supabase/supabase-js';
-import type { ChecklistSetRow, ProfileRow, UserChecklistSetRow } from '@/lib/database.types';
+import type { ChecklistSetRow, UserChecklistSetRow } from '@/lib/database.types';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -40,9 +39,11 @@ type SidebarContentProps = {
   appSetsLoading: boolean;
   activeAppSets: AppSet[];
   setMobileOpen: (v: boolean) => void;
-  isAuthLoading: boolean;
-  profile: ProfileRow | null;
-  user: User | null;
+  // Resolved display values — parent handles loading/cache logic so this
+  // component never needs to know about auth loading state.
+  displayName: string;
+  displayStage: string;
+  showSkeleton: boolean;
   signOut: () => Promise<void>;
 };
 
@@ -73,15 +74,11 @@ function SidebarContent({
   appSetsLoading,
   activeAppSets,
   setMobileOpen,
-  isAuthLoading,
-  profile,
-  user,
+  displayName,
+  displayStage,
+  showSkeleton,
   signOut,
 }: SidebarContentProps) {
-  // Show skeleton while auth is in-flight OR while user is known but profile
-  // hasn't loaded yet (race between onAuthStateChange and fetchProfile).
-  const isLoading = isAuthLoading || (!!user && !profile);
-  const displayName = profile?.full_name || (user?.user_metadata?.full_name as string) || '';
 
   return (
     <div className="flex flex-col h-full">
@@ -278,7 +275,7 @@ function SidebarContent({
 
         {/* User info */}
         <div className="flex items-center gap-3 px-3 py-3 mt-2 rounded-lg bg-white/5">
-          {isLoading ? (
+          {showSkeleton ? (
             <>
               <div className="w-8 h-8 rounded-full bg-white/10 animate-pulse flex-shrink-0" />
               <div className="flex-1 space-y-1.5">
@@ -298,7 +295,7 @@ function SidebarContent({
                   )}
                 </p>
                 <p className="text-xs text-surface-500 truncate">
-                  {profile?.training_stage || 'Set your stage'}
+                  {displayStage || 'Set your stage'}
                 </p>
               </div>
             </>
@@ -311,6 +308,19 @@ function SidebarContent({
 
 // ─── Sidebar — only manages state and layout shell ───────────────────────────
 
+const CACHE_NAME_KEY = 'mf_display_name';
+const CACHE_STAGE_KEY = 'mf_training_stage';
+
+function readCache(key: string): string {
+  try { return localStorage.getItem(key) ?? ''; } catch { return ''; }
+}
+function writeCache(key: string, value: string) {
+  try { localStorage.setItem(key, value); } catch {}
+}
+function clearCache() {
+  try { localStorage.removeItem(CACHE_NAME_KEY); localStorage.removeItem(CACHE_STAGE_KEY); } catch {}
+}
+
 export function Sidebar() {
   const pathname = usePathname();
   const { profile, user, loading: authLoading, signOut } = useAuth();
@@ -319,6 +329,37 @@ export function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activeAppSets, setActiveAppSets] = useState<AppSet[]>([]);
   const [appSetsLoading, setAppSetsLoading] = useState(true);
+
+  // ── Display name / stage with localStorage cache ──────────────────────────
+  // On mount: read cached values so the name shows immediately without waiting
+  // for the auth round-trip. On profile load: update the cache. On sign-out: clear.
+  const [cachedName, setCachedName] = useState('');
+  const [cachedStage, setCachedStage] = useState('');
+
+  // Populate cache from localStorage after hydration (can't read localStorage
+  // during SSR, so we use useEffect to avoid a hydration mismatch).
+  useEffect(() => {
+    setCachedName(readCache(CACHE_NAME_KEY));
+    setCachedStage(readCache(CACHE_STAGE_KEY));
+  }, []);
+
+  // Write to cache when profile resolves; clear when signed out.
+  useEffect(() => {
+    if (!authLoading && !user) {
+      clearCache();
+      setCachedName('');
+      setCachedStage('');
+      return;
+    }
+    if (profile) {
+      const name = profile.full_name || (user?.user_metadata?.full_name as string) || '';
+      const stage = profile.training_stage || '';
+      writeCache(CACHE_NAME_KEY, name);
+      writeCache(CACHE_STAGE_KEY, stage);
+      setCachedName(name);
+      setCachedStage(stage);
+    }
+  }, [profile, user, authLoading]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -372,6 +413,13 @@ export function Sidebar() {
     (spec) => !(profile?.hidden_specialties ?? []).includes(spec.id)
   );
 
+  // Resolved display values: prefer live profile, fall back to cache so the
+  // name is always visible without waiting for auth to complete.
+  const resolvedName = profile?.full_name || (user?.user_metadata?.full_name as string) || cachedName;
+  const resolvedStage = profile?.training_stage || cachedStage;
+  // Only show skeleton when truly loading AND there is no cached value to show.
+  const showSkeleton = (authLoading || (!!user && !profile)) && !resolvedName;
+
   const contentProps: SidebarContentProps = {
     pathname,
     navItems,
@@ -384,9 +432,9 @@ export function Sidebar() {
     appSetsLoading,
     activeAppSets,
     setMobileOpen,
-    isAuthLoading: authLoading,
-    profile,
-    user,
+    displayName: resolvedName,
+    displayStage: resolvedStage,
+    showSkeleton,
     signOut,
   };
 
