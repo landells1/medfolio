@@ -285,16 +285,21 @@ function SidebarContent({
             </>
           ) : (
             <>
-              <div className="w-8 h-8 rounded-full bg-brand-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+              {/* suppressHydrationWarning: server renders '' (no window),
+                  client renders from localStorage — intentional mismatch */}
+              <div
+                suppressHydrationWarning
+                className="w-8 h-8 rounded-full bg-brand-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+              >
                 {displayName ? getInitials(displayName) : '?'}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-white truncate">
+                <p suppressHydrationWarning className="text-sm font-medium text-white truncate">
                   {displayName || (
                     <span className="text-surface-500 italic text-xs">Set your name</span>
                   )}
                 </p>
-                <p className="text-xs text-surface-500 truncate">
+                <p suppressHydrationWarning className="text-xs text-surface-500 truncate">
                   {displayStage || 'Set your stage'}
                 </p>
               </div>
@@ -331,17 +336,13 @@ export function Sidebar() {
   const [appSetsLoading, setAppSetsLoading] = useState(true);
 
   // ── Display name / stage with localStorage cache ──────────────────────────
-  // On mount: read cached values so the name shows immediately without waiting
-  // for the auth round-trip. On profile load: update the cache. On sign-out: clear.
-  const [cachedName, setCachedName] = useState('');
-  const [cachedStage, setCachedStage] = useState('');
-
-  // Populate cache from localStorage after hydration (can't read localStorage
-  // during SSR, so we use useEffect to avoid a hydration mismatch).
-  useEffect(() => {
-    setCachedName(readCache(CACHE_NAME_KEY));
-    setCachedStage(readCache(CACHE_STAGE_KEY));
-  }, []);
+  // Initialise synchronously from localStorage so the name is available on
+  // the very first render — same as how SPECIALTIES makes "My Training" instant.
+  // The server renders '' (window is undefined); the client renders the cached
+  // value. suppressHydrationWarning on the affected elements silences the
+  // expected server/client mismatch for this browser-only data.
+  const [cachedName, setCachedName] = useState(() => readCache(CACHE_NAME_KEY));
+  const [cachedStage, setCachedStage] = useState(() => readCache(CACHE_STAGE_KEY));
 
   // Write to cache when profile resolves; clear when signed out.
   useEffect(() => {
