@@ -286,14 +286,22 @@ export default function DashboardPage() {
         {/* Portfolio progress */}
         <div className="lg:col-span-3 card p-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="font-display font-semibold text-surface-900">Portfolio progress</h2>
+            <h2 className="font-display font-semibold text-surface-900">Training progress</h2>
           </div>
 
-          {activeSpecialties.length === 0 ? (
+          {SPECIALTIES.length < 1 ? (
+            <div className="text-center py-12">
+              <Stethoscope className="w-10 h-10 text-surface-300 mx-auto mb-3" />
+              <p className="text-surface-500 mb-4">No specialties set up yet</p>
+              <Link href="/training/foundation" className="btn-primary text-sm">
+                Set up your portfolio
+              </Link>
+            </div>
+          ) : activeSpecialties.length === 0 ? (
             <div className="text-center py-12">
               <Stethoscope className="w-10 h-10 text-surface-300 mx-auto mb-3" />
               <p className="text-surface-500 mb-4">No portfolio data yet</p>
-              <Link href="/portfolio/foundation" className="btn-primary text-sm">
+              <Link href="/training/foundation" className="btn-primary text-sm">
                 Start tracking
               </Link>
             </div>
@@ -314,7 +322,7 @@ export default function DashboardPage() {
                         return (
                           <Link
                             key={year}
-                            href={`/portfolio/${spec.id}`}
+                            href={`/training/${spec.id}`}
                             className="group flex flex-col items-center gap-1.5"
                           >
                             <ProgressRing

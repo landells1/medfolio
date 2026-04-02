@@ -2,7 +2,8 @@
 
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
-import { cn, getInitials, SPECIALTIES } from '@/lib/utils';
+import { cn, getInitials, SPECIALTIES, APPLICATION_SPECIALTIES } from '@/lib/utils';
+import { createClient } from '@/lib/supabase/client';
 import {
   LayoutDashboard,
   ClipboardCheck,
@@ -15,15 +16,56 @@ import {
   X,
   Compass,
   MessageSquarePlus,
-
+  Target,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import type { ChecklistSetRow, UserChecklistSetRow } from '@/lib/database.types';
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { profile, signOut } = useAuth();
-  const [portfolioOpen, setPortfolioOpen] = useState(true);
+  const { profile, user, signOut } = useAuth();
+  const [trainingOpen, setTrainingOpen] = useState(true);
+  const [applicationsOpen, setApplicationsOpen] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Active application sets for this user
+  const [activeAppSets, setActiveAppSets] = useState<Array<{ id: string; specialty: string; name: string }>>([]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    const supabase = createClient();
+
+    const fetchAppSets = async () => {
+      // Fetch user's activated application checklist sets
+      const { data: userSets, error: userSetsError } = await supabase
+        .from('user_checklist_sets')
+        .select('checklist_set_id')
+        .eq('user_id', user.id)
+        .eq('is_active', true);
+
+      if (userSetsError || !userSets || userSets.length === 0) {
+        setActiveAppSets([]);
+        return;
+      }
+
+      const setIds = (userSets as UserChecklistSetRow[]).map((s) => s.checklist_set_id);
+
+      const { data: sets, error: setsError } = await supabase
+        .from('checklist_sets')
+        .select('id, specialty, name')
+        .eq('kind', 'application')
+        .in('id', setIds);
+
+      if (setsError || !sets) {
+        setActiveAppSets([]);
+        return;
+      }
+
+      setActiveAppSets((sets as ChecklistSetRow[]).map((s) => ({ id: s.id, specialty: s.specialty, name: s.name })));
+    };
+
+    fetchAppSets();
+  }, [user?.id]);
 
   const navItems = [
     { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -40,6 +82,12 @@ export function Sidebar() {
   const visibleSpecialties = SPECIALTIES.filter(
     (spec) => !(profile?.hidden_specialties ?? []).includes(spec.id)
   );
+
+  // Map application specialty DB name to URL slug
+  const getAppSlug = (dbSpecialty: string) => {
+    const found = APPLICATION_SPECIALTIES.find((s) => s.name === dbSpecialty);
+    return found?.id || dbSpecialty.toLowerCase();
+  };
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
@@ -70,36 +118,36 @@ export function Sidebar() {
           </a>
         ))}
 
-        {/* Portfolio section with sub-nav */}
+        {/* My Training section */}
         <div>
           <button
-            onClick={() => setPortfolioOpen(!portfolioOpen)}
+            onClick={() => setTrainingOpen(!trainingOpen)}
             className={cn(
               'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 w-full',
-              pathname.startsWith('/portfolio')
+              pathname.startsWith('/training') || pathname.startsWith('/portfolio')
                 ? 'bg-white/10 text-white'
                 : 'text-surface-400 hover:text-white hover:bg-white/5'
             )}
           >
             <ClipboardCheck className="w-[18px] h-[18px] flex-shrink-0" />
-            <span className="flex-1 text-left">Portfolio</span>
-            {portfolioOpen ? (
+            <span className="flex-1 text-left">My Training</span>
+            {trainingOpen ? (
               <ChevronDown className="w-4 h-4 text-surface-500" />
             ) : (
               <ChevronRight className="w-4 h-4 text-surface-500" />
             )}
           </button>
 
-          {portfolioOpen && (
+          {trainingOpen && (
             <div className="ml-5 pl-4 border-l border-surface-800 mt-1 space-y-0.5">
               {visibleSpecialties.map((spec) => (
                 <a
                   key={spec.id}
-                  href={`/portfolio/${spec.id}`}
+                  href={`/training/${spec.id}`}
                   onClick={() => setMobileOpen(false)}
                   className={cn(
                     'flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-all duration-150',
-                    isActive(`/portfolio/${spec.id}`)
+                    isActive(`/training/${spec.id}`)
                       ? 'text-brand-400 bg-brand-500/10'
                       : 'text-surface-500 hover:text-surface-300 hover:bg-white/5'
                   )}
@@ -107,6 +155,57 @@ export function Sidebar() {
                   {spec.name}
                 </a>
               ))}
+            </div>
+          )}
+        </div>
+
+        {/* Future Applications section */}
+        <div>
+          <button
+            onClick={() => setApplicationsOpen(!applicationsOpen)}
+            className={cn(
+              'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 w-full',
+              pathname.startsWith('/applications')
+                ? 'bg-white/10 text-white'
+                : 'text-surface-400 hover:text-white hover:bg-white/5'
+            )}
+          >
+            <Target className="w-[18px] h-[18px] flex-shrink-0" />
+            <span className="flex-1 text-left">Future Applications</span>
+            {applicationsOpen ? (
+              <ChevronDown className="w-4 h-4 text-surface-500" />
+            ) : (
+              <ChevronRight className="w-4 h-4 text-surface-500" />
+            )}
+          </button>
+
+          {applicationsOpen && (
+            <div className="ml-5 pl-4 border-l border-surface-800 mt-1 space-y-0.5">
+              {activeAppSets.length > 0 ? (
+                activeAppSets.map((set) => (
+                  <a
+                    key={set.id}
+                    href={`/applications/${getAppSlug(set.specialty)}`}
+                    onClick={() => setMobileOpen(false)}
+                    className={cn(
+                      'flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-all duration-150',
+                      isActive(`/applications/${getAppSlug(set.specialty)}`)
+                        ? 'text-brand-400 bg-brand-500/10'
+                        : 'text-surface-500 hover:text-surface-300 hover:bg-white/5'
+                    )}
+                  >
+                    {set.name}
+                  </a>
+                ))
+              ) : (
+                <a
+                  href="/applications"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs text-surface-600 hover:text-surface-400 hover:bg-white/5 transition-all duration-150"
+                >
+                  Browse applications
+                </a>
+              )}
             </div>
           )}
         </div>
