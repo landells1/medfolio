@@ -35,7 +35,7 @@ const TRAINING_STAGES: Array<{ value: TrainingStage; label: string }> = [
 ];
 
 export default function SettingsPage() {
-  const { profile, refreshProfile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const supabase = createClient();
   const { toast } = useToast();
 
@@ -63,8 +63,9 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (profile) {
-      // Split full_name on first space into first + last
-      const parts = (profile.full_name || '').split(' ');
+      // Fall back to auth user metadata if profile full_name is empty
+      const nameSource = profile.full_name || (user?.user_metadata?.full_name as string) || '';
+      const parts = nameSource.split(' ');
       setFirstName(parts[0] || '');
       setLastName(parts.slice(1).join(' '));
       setTrainingStage(profile.training_stage || '');

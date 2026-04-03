@@ -2,9 +2,12 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useAuth } from '@/lib/auth-context';
 import { ArrowLeft, Send, Check, Loader2, AlertCircle } from 'lucide-react';
 
 export default function ContactPage() {
+  const { user } = useAuth();
+  const backHref = user ? '/dashboard' : '/';
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -39,7 +42,7 @@ export default function ContactPage() {
     <div className="min-h-screen bg-white">
       <div className="max-w-xl mx-auto px-6 py-12">
         <Link
-          href="/"
+          href={backHref}
           className="inline-flex items-center gap-1.5 text-sm text-surface-500 hover:text-surface-700 mb-8"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -64,7 +67,7 @@ export default function ContactPage() {
             <p className="text-surface-500 text-sm mb-6">
               Thanks for reaching out. We&apos;ll get back to you as soon as possible.
             </p>
-            <Link href="/" className="btn-primary">
+            <Link href={backHref} className="btn-primary">
               Back to home
             </Link>
           </div>
