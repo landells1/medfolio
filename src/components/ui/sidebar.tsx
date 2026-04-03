@@ -18,7 +18,7 @@ import {
   MessageSquarePlus,
   Target,
 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useLayoutEffect } from 'react';
 import type { ChecklistSetRow, UserChecklistSetRow } from '@/lib/database.types';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -336,13 +336,17 @@ export function Sidebar() {
   const [appSetsLoading, setAppSetsLoading] = useState(true);
 
   // ── Display name / stage with localStorage cache ──────────────────────────
-  // Initialise synchronously from localStorage so the name is available on
-  // the very first render — same as how SPECIALTIES makes "My Training" instant.
-  // The server renders '' (window is undefined); the client renders the cached
-  // value. suppressHydrationWarning on the affected elements silences the
-  // expected server/client mismatch for this browser-only data.
-  const [cachedName, setCachedName] = useState(() => readCache(CACHE_NAME_KEY));
-  const [cachedStage, setCachedStage] = useState(() => readCache(CACHE_STAGE_KEY));
+  // useState initializers run on the server during SSR and return '' (no window).
+  // React does NOT re-run them during client hydration — it reuses server state.
+  // useLayoutEffect fires on the client BEFORE the browser paints, so the cached
+  // name is in place before the user ever sees the React-rendered content.
+  const [cachedName, setCachedName] = useState('');
+  const [cachedStage, setCachedStage] = useState('');
+
+  useLayoutEffect(() => {
+    setCachedName(readCache(CACHE_NAME_KEY));
+    setCachedStage(readCache(CACHE_STAGE_KEY));
+  }, []);
 
   // Write to cache when profile resolves; clear when signed out.
   useEffect(() => {
