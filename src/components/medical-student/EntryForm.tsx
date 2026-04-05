@@ -92,12 +92,14 @@ export function EntryForm({ category, entry, onClose, onSaved }: Props) {
       updated_at: new Date().toISOString(),
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = supabase as any;
     const { error: dbError } = entry
-      ? await supabase
+      ? await db
           .from('medical_student_entries')
           .update(payload)
           .eq('id', entry.id)
-      : await supabase.from('medical_student_entries').insert(payload);
+      : await db.from('medical_student_entries').insert(payload);
 
     setSaving(false);
 
