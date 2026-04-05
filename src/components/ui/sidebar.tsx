@@ -17,6 +17,7 @@ import {
   Compass,
   MessageSquarePlus,
   Target,
+  GraduationCap,
 } from 'lucide-react';
 import { useState, useEffect, useLayoutEffect } from 'react';
 import type { ChecklistSetRow, UserChecklistSetRow } from '@/lib/database.types';
@@ -111,6 +112,21 @@ function SidebarContent({
             {item.label}
           </a>
         ))}
+
+        {/* Medical Student */}
+        <a
+          href="/medical-student"
+          onClick={() => setMobileOpen(false)}
+          className={cn(
+            'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150',
+            pathname.startsWith('/medical-student')
+              ? 'bg-white/10 text-white'
+              : 'text-surface-400 hover:text-white hover:bg-white/5'
+          )}
+        >
+          <GraduationCap className="w-[18px] h-[18px] flex-shrink-0" />
+          Medical Student
+        </a>
 
         {/* My Training */}
         <div>
