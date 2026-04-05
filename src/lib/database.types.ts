@@ -465,6 +465,42 @@ export interface Database {
         };
         Relationships: never[];
       };
+      medical_student_entries: {
+        Row: {
+          id: string;
+          user_id: string;
+          category: string;
+          template_type: string;
+          year_of_training: number | null;
+          title: string;
+          data: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          category: string;
+          template_type: string;
+          year_of_training?: number | null;
+          title: string;
+          data?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          category?: string;
+          template_type?: string;
+          year_of_training?: number | null;
+          title?: string;
+          data?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: never[];
+      };
     };
     Views: {
       [_ in never]: never;
